@@ -725,6 +725,7 @@ def heating_module(
         rho_fw = 1000,
         rho_snow = 910,
         Hs = 0,
+        Hsi = 0,
         sigma = 5.67e-8,
         albedo = 0.1,
         eps = 0.97,
@@ -736,24 +737,31 @@ def heating_module(
     
     if ice and Tair <= 0:
       albedo = 0.3
-      IceSnowAttCoeff = exp(-kd_ice * Hi) * exp(-kd_snow * (rho_fw/rho_snow)* Hs)
+      IceSnowAttCoeff = exp(-kd_ice * (Hi )) * exp(-kd_snow * (rho_fw/rho_snow)* (Hs )) 
     elif (ice and Tair >= 0):
       albedo = 0.3
-      IceSnowAttCoeff = exp(-kd_ice * Hi) * exp(-kd_snow * (rho_fw/rho_snow)* Hs)
+      IceSnowAttCoeff = exp(-kd_ice * (Hi )) * exp(-kd_snow * (rho_fw/rho_snow)* (Hs )) 
     elif not ice:
       albedo = 0.1
       IceSnowAttCoeff = 1
+      
     
     ## (1) HEAT ADDITION
     # surface heat flux
     start_time = datetime.datetime.now()
     
     u = un
-    
-    Q = (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
+    if ice:
+        Uw_red = Uw * 0.001
+        Q = (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
             backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
-            latent(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
-            sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd))  
+            latent(Tair = Tair, Twater = un[0], Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
+            sensible(Tair = Tair, Twater = un[0], Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd))  
+    else: 
+        Q = (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
+             backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
+             latent(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
+             sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd))     
     
     # heat addition over depth
     
@@ -1058,11 +1066,11 @@ def ice_module(
             Tice = 0
             dHsnew = 0
             
-            if (Hs > 0):
-                dHs = (-1) * np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
+            if (Hs > 0): # (1 - IceSnowAttCoeff) * Jsw) 
+                dHs = (-1) * np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw) + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
                                                                                    backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
                                                                                    latent(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
-                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) ))/ (rho_fw * L_ice)])
+                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) )/ (rho_fw * L_ice)])
                 if (Hs + dHs) < 0:
                     Hi_new = Hi + (Hs + dHs) * (rho_fw/rho_ice)
                 else:
@@ -1070,14 +1078,14 @@ def ice_module(
             else:
                 dHs = 0
                 
-                Hi_new = Hi - np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
+                Hi_new = Hi - np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw ) + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
                                                                                    backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
                                                                                    latent(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
-                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) ))/ (rho_ice * L_ice)])
-                Hsi = Hsi - np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
+                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) )/ (rho_ice * L_ice)])
+                Hsi = Hsi - np.max([0, meltP * dt * (((1 - IceSnowAttCoeff) * Jsw ) + (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
                                                                                    backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
                                                                                    latent(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
-                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) ))/ (rho_ice * L_ice)])
+                                                                                   sensible(Tair = Tair, Twater = un[0], Uw = Uw, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd)) )/ (rho_ice * L_ice)])
                 if Hsi <= 0:
                     Hsi = 0
         else:
@@ -1194,7 +1202,7 @@ def run_thermalmodel(
   Cw = 4.18E6,
   L_ice = 333500,
   kd_snow = 0.9,
-  kd_ice = 0.7):
+  kd_ice = 0.7): 
     
   ## linearization of driver data, so model can have dynamic step
   Jsw_fillvals = tuple(daily_meteo.Shortwave_Radiation_Downwelling_wattPerMeterSquared.values[[0, -1]])
@@ -1289,7 +1297,8 @@ def run_thermalmodel(
         kd_light = kd_light,
         Hi = Hi,
         rho_snow = rho_snow,
-        Hs = Hs)
+        Hs = Hs,
+        Hsi = Hsi)
     
     u = heating_res['temp']
     IceSnowAttCoeff = heating_res['IceSnowAttCoeff']
