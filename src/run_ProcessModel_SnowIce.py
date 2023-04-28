@@ -17,8 +17,8 @@ from processBased_lakeModel_functions import get_hypsography, provide_meteorolog
 
 
 ## lake configurations
-zmax = 25 # maximum lake depth
-nx = 25 * 2 # number of layers we will have
+zmax = 5 # maximum lake depth
+nx = 5 * 2 # number of layers we will have
 dt = 3600 # 24 hours times 60 min/hour times 60 seconds/min
 dx = zmax/nx # spatial step
 
@@ -69,7 +69,7 @@ Start = datetime.datetime.now()
 
 
 light_extinction = 1.5
-pp_factor = 1
+pp_factor = 2
 meteo_all[0]["Precipitation_millimeterPerDay"] = meteo_all[0]["Precipitation_millimeterPerDay"] * pp_factor# * 0.0
     
 res = run_thermalmodel_test(  
@@ -113,7 +113,8 @@ res = run_thermalmodel_test(
     KEice=0,
     Ice_min=0.1,
     pgdl_mode = 'on',
-    rho_snow = 250)
+    rho_snow = 250,
+    iceTemp = 0)
 
 temp=  res['temp']
 diff =  res['diff']
@@ -182,9 +183,9 @@ plt.show()
 fig=plt.figure(figsize=(10,6))
 ax = plt.gca()
 plt.plot(times, temp[1,:], color="blue")
-plt.plot(times, temp[3,:], color="red")
-plt.plot(times, temp[5,:], color="green")
-plt.legend(['0.5 m', '1.5 m', '2.5 m'])
+plt.plot(times, temp[2,:], color="red")
+plt.plot(times, temp[3,:], color="green")
+plt.legend(['0.5 m', '1.0 m', '1.5 m'])
 plt.title('Kd ' + str(light_extinction) + ", PP " + str(pp_factor))
 plt.ylabel('Water Temperature  ($^\circ$C)')
 ax.set_ylim([-0.1, 3])

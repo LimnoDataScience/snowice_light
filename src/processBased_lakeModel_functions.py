@@ -720,6 +720,7 @@ def heating_module(
         Pa,
         RH,
         kd_light,
+        iceTemp,
         Hi = 0,
         kd_snow = 0.9,
         rho_fw = 1000,
@@ -752,11 +753,12 @@ def heating_module(
     
     u = un
     if ice:
-        Uw_red = Uw * 0.001
+        Uw_red = 0.0001 # GLM source code
+        WaterTemp = iceTemp # GLM, all heat fluxes depend on ice temp
         Q = (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
-            backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
-            latent(Tair = Tair, Twater = un[0], Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
-            sensible(Tair = Tair, Twater = un[0], Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd))  
+            backscattering(emissivity = emissivity, sigma = sigma, Twater = WaterTemp, eps = eps) +
+            latent(Tair = Tair, Twater = WaterTemp, Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd) + 
+            sensible(Tair = Tair, Twater = WaterTemp, Uw = Uw_red, p2 = p2, pa = Pa, ea=ea, RH = RH, A = area, Cd = Cd))  
     else: 
         Q = (longwave(cc = CC, sigma = sigma, Tair = Tair, ea = ea, emissivity = emissivity, Jlw = Jlw) + #longwave(emissivity = emissivity, Jlw = Jlw) +
              backscattering(emissivity = emissivity, sigma = sigma, Twater = un[0], eps = eps) +
@@ -1006,6 +1008,7 @@ def ice_module(
         RH,
         PP,
         IceSnowAttCoeff,
+        iceTemp,
         ice = False,
         dt_iceon_avg = 0.8,
         iceT = 6,
@@ -1049,7 +1052,7 @@ def ice_module(
       supercooled = u < 0
       initEnergy = np.sum((0-u[supercooled])*area[supercooled] * dx * Cw)
       
-      Hi = Ice_min+(initEnergy/(910*L_ice))/np.max(area)
+      Hi = Ice_min+(initEnergy/(rho_ice*L_ice))/np.max(area)
       
       ice = True
       
@@ -1146,7 +1149,8 @@ def ice_module(
             'iceFlag': ice,
             'icemovAvg': iceT,
             'supercooled': supercooled,
-            'density_snow': rho_snow}
+            'density_snow': rho_snow,
+            'iceTemp': Tice}
     
     return dat
 
@@ -1251,7 +1255,7 @@ def run_thermalmodel(
     def kd(n): # using this shortcut for now / testing if it works
       return kd_light
 
-  
+  iceTemp = 0
 
   times = np.arange(startTime, endTime, dt)
   for idn, n in enumerate(times):
@@ -1298,7 +1302,8 @@ def run_thermalmodel(
         Hi = Hi,
         rho_snow = rho_snow,
         Hs = Hs,
-        Hsi = Hsi)
+        Hsi = Hsi,
+        iceTemp = iceTemp)
     
     u = heating_res['temp']
     IceSnowAttCoeff = heating_res['IceSnowAttCoeff']
@@ -1393,6 +1398,7 @@ def run_thermalmodel(
     iceT = ice_res['icemovAvg']
     supercooled = ice_res['supercooled']
     rho_snow = ice_res['density_snow']
+    iceTemp = ice_res['iceTemp']
     
     um_ice[:, idn] = u
     um[:, idn] = u
@@ -1536,7 +1542,8 @@ def run_thermalmodel_test(
   Cw = 4.18E6,
   L_ice = 333500,
   kd_snow = 0.9,
-  kd_ice = 0.7):
+  kd_ice = 0.7,
+  iceTemp = 0):
     
   ## linearization of driver data, so model can have dynamic step
   Jsw_fillvals = tuple(daily_meteo.Shortwave_Radiation_Downwelling_wattPerMeterSquared.values[[0, -1]])
@@ -1632,7 +1639,8 @@ def run_thermalmodel_test(
         kd_light = kd_light,
         Hi = Hi,
         rho_snow = rho_snow,
-        Hs = Hs)
+        Hs = Hs,
+        iceTemp = iceTemp)
     
     u = heating_res['temp']
     IceSnowAttCoeff = heating_res['IceSnowAttCoeff']
@@ -1662,7 +1670,8 @@ def run_thermalmodel_test(
         rho_snow = rho_snow,
         Hi = Hi,
         Hsi = Hsi,
-        Hs = Hs)
+        Hs = Hs,
+        iceTemp = iceTemp)
     
     u = ice_res['temp']
     Hi = ice_res['icethickness']
@@ -1672,6 +1681,7 @@ def run_thermalmodel_test(
     iceT = ice_res['icemovAvg']
     supercooled = ice_res['supercooled']
     rho_snow = ice_res['density_snow']
+    iceTemp = ice_res['iceTemp']
     
     um_ice[:, idn] = u
     
