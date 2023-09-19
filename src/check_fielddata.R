@@ -38,8 +38,64 @@ ggplot(df ) +
 ggplot(df %>% filter(Depth_m == 0.7)) +
   geom_line(aes(dateTime, Temp_C))
 
+df %>% mutate(year = year(dateTime), hour = hour(dateTime), date = yday(dateTime)) %>% filter(year == 2021) %>%
+  group_by(hour, date,dateTime, Depth_m) %>% summarise(Temp = mean(Temp_C)) %>% 
+  arrange(dateTime, date, hour, Depth_m) %>%
+  # filter(row_number() %% 72 == 1) %>%
+  ggplot() +
+  geom_path(aes(Temp, Depth_m, group = as.factor(hour), col = date)) +
+  scale_y_reverse() +
+  # theme(legend.position = "none") +
+  scale_color_gradientn(colors = met.brewer("Hokusai1", n=100)) 
+
 ggplot(df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = yday(dateTime), weekday = wday(dateTime)) %>% 
          dplyr::filter(weekday %in% c(1,4,7)) %>%
+         group_by(winter, date, Depth_m) %>%
+         summarise(Temp = mean(Temp_C))) +
+  geom_path(aes(Temp, Depth_m, group = as.factor(date), col = (date))) +
+  scale_y_reverse() +
+  # theme(legend.position = "none") +
+  scale_color_gradientn(colors = met.brewer("Hokusai1", n=100)) +
+  facet_wrap(~ winter, ncol =  1)
+
+df_plot = df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = yday(dateTime), weekday = wday(dateTime),
+                                                          hour = hour(dateTime),
+                                                          Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>% 
+  filter(hour == 12 ) %>%
+  group_by(winter, Time, Depth_m) %>%
+  summarise(Temp = mean(Temp_C)) %>% mutate(date = yday(Time), month = month(Time))
+
+df_plot %>%
+  group_by(date) %>%
+  filter(n_distinct(winter) == n_distinct(df_plot$winter))
+
+ggplot(df_plot %>%
+         group_by(date) %>%
+         filter(n_distinct(winter) == n_distinct(df_plot$winter))) +
+  geom_path(aes(Temp, Depth_m, group = as.factor(date), col = (Temp))) +
+  scale_y_reverse() +
+  # theme(legend.position = "none") +
+  scale_color_gradientn(colors = rev(met.brewer("Hokusai1", n=100))) +
+  facet_wrap(~ winter + factor(month, levels = c(12,1,2,3,4)), ncol =  5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ggplot(df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = yday(dateTime), weekday = wday(dateTime)) %>% 
          group_by(winter, date, Depth_m) %>%
          summarise(Temp = mean(Temp_C))) +
   geom_path(aes(Temp, Depth_m, group = as.factor(date), col = (date))) +
@@ -51,11 +107,14 @@ ggplot(df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = yday(dateTime), we
 ggplot(df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = yday(dateTime), weekday = wday(dateTime)) %>% 
          group_by(winter, date, Depth_m) %>%
          summarise(Temp = mean(Temp_C))) +
-  geom_path(aes(Temp, Depth_m, group = as.factor(date), col = (date))) +
+  geom_point(aes(date, Depth_m)) +
   scale_y_reverse() +
   # theme(legend.position = "none") +
   scale_color_gradientn(colors = met.brewer("Hokusai1", n=100)) +
   facet_wrap(~ winter, ncol =  1)
+
+
+
 
 
 df_day <- df %>%
@@ -67,230 +126,182 @@ df_day <- df %>%
   group_by(Time, Depth_m) %>%
   summarise(Temp = mean(Temp_C))
 
+# df_day <- df %>%
+#   mutate(hour = hour(dateTime),
+#          Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>%
+#   # mutate(day = day(dateTime),
+#          # Time = as.Date(dateTime)) %>%
+#   arrange(Time, Depth_m) %>%
+#   group_by(Time, Depth_m) %>%
+#   summarise(Temp = mean(Temp_C))
+
 
 dz = 0.1
-depths = seq(0, max(df_day$Depth_m), dz)
+depths = seq(0.15, max(df_day$Depth_m), dz)
 df_temp = matrix(NA, nrow = length(unique(df_day$Time)), ncol = 1 + length(depths))
 df_temp = as.data.frame(df_temp)
 colnames(df_temp) = c('Time', depths)
+df_temp$Time = as.Date(df_temp$Time)
+conv.layer <- data.frame('Time' = NA,
+                         'Buoydep' = NA,
+                         'Convdep' = NA,
+                         'energy' = NA,
+                         'minT' = NA)
+conv.layer$Time = as.Date(conv.layer$Time)
 
 for (t in unique(df_day$Time)){
   data = df_day %>%
-    filter(Time == t)
+    filter(Time == t) %>%
+    arrange(Depth_m)
   
-  interpolated <- approx(data$Depth_m, data$Temp, seq(0,  max(df_day$Depth_m), dz) , rule = 2)
+  interpolated <- approx(data$Depth_m, data$Temp, seq(0.15,  max(df_day$Depth_m), dz) , rule = 2)
+  
+  buoy.dep <- center.buoyancy(interpolated$y, interpolated$x)
   
   idx = match(mean(data$Time),  unique(df_day$Time))
   
-  df_temp[idx,] = c(mean(data$Time), interpolated$y)
+  # df_temp[idx,] = c(mean(data$Time), interpolated$y)
+  df_temp$Time[idx] = as.Date(mean(data$Time))
+  df_temp[idx, 2:ncol(df_temp)] = interpolated$y
+  
+  
+  df.test = data.frame('depth' = interpolated$x,
+                       'temp' = interpolated$y) %>%
+    mutate(            'density'= water.density( temp),
+                       'diff.dens' = c(NA, diff(density)),
+                       'diff.temp' = c(NA, diff(temp))) %>%
+    mutate(flag.dens = abs(diff.dens)< 1e-5,
+           flag.temp = abs(diff.temp) < 1e-3,
+           flag = ifelse(flag.dens == T & flag.temp == T, T, F))
+  
+  if (any(na.omit(df.test$flag) == T)){
+    conv.layer.depth = df.test %>% filter(flag == T) %>%
+    summarise(max(depth))
+  } else {
+    conv.layer.depth = NA
+  }
+  
+  bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 'voldev', zinterval = dz)
+  energy = internal.energy(wtr = interpolated$y, depths=interpolated$x,
+                           bthA = bathymetry$Area.at.z, bthD = bathymetry$depths)
+  
+  conv.layer = rbind(conv.layer, data.frame('Time' = as.Date(mean(data$Time)),
+                                            'Buoydep' = buoy.dep,
+                                            'Convdep' = as.numeric(conv.layer.depth),
+                                            'energy' = energy,
+                                            'minT' = min(interpolated$y)))
 }
+all.dates <- seq(as.Date('2018-11-01'), as.Date('2021-05-31'), by = 1)
+idx.dates <- which(all.dates %in% conv.layer$Time)
 
-df_temp = df_temp %>%
-  mutate(Time = unique(df_day$Time))
+add.dates <- data.frame('Time' = all.dates[-idx.dates],
+                        'Buoydep' = NA,
+                        'Convdep' = NA,
+                        'energy' = NA,
+                        'minT' = NA)
 
-temp = df_temp %>%
-  filter(row_number() %% 7 == 1)
-
-# write.csv(x = df_save,'~/Desktop/temp.csv', quote = F, row.names =  F)
-
-
-temp %>% gather(key = depth, value = temp, '0':'7.5') %>% 
-  mutate(depth = gsub("X", "", depth), depth = as.numeric(depth),
-         Time = ymd(Time)) %>% 
-  ggplot(aes(x = depth, y = Time, height = temp, group = Time)) + 
-  geom_ridgeline() + 
-  scale_x_reverse() + 
-  coord_flip() 
+conv.layer <- rbind(conv.layer, add.dates) %>% arrange(Time)
 
 
-temp_long = reshape2::melt(temp, "Time")
-temp_long$Time <- unique(temp$Time)
+conv.layer = conv.layer %>% 
+  mutate(doy = yday(Time), year = year(Time), month = month(Time))
+conv.layer$winter = NA
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2018] = 'winter18-19'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2019] = 'winter18-19'
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2019] = 'winter19-20'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2020] = 'winter19-20'
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2020] = 'winter20-21'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2021] = 'winter20-21'
 
-temp_long = temp_long %>%
-  mutate(year = year(Time),
-         month = month(Time))
+ggplot(conv.layer %>% filter(!is.na(winter))) +
+  geom_point(aes(doy, energy)) +
+  facet_wrap(~ winter + factor(month, levels = c(10, 11,12,1,2,3,4,5,6)), ncol =  9, scales = 'free_x')
 
-temp_long$winter = NA
-temp_long$winter[temp_long$month >= 12 & temp_long$year == 2018] = 'winter18-19'
-temp_long$winter[temp_long$month <= 3 & temp_long$year == 2019] = 'winter18-19'
-temp_long$winter[temp_long$month >= 12 & temp_long$year == 2019] = 'winter19-20'
-temp_long$winter[temp_long$month <= 3 & temp_long$year == 2020] = 'winter19-20'
-temp_long$winter[temp_long$month >= 12 & temp_long$year == 2020] = 'winter20-21'
-temp_long$winter[temp_long$month <= 3 & temp_long$year == 2021] = 'winter20-21'
+p1 <- ggplot(conv.layer %>% filter(!is.na(winter))) +
+  geom_line(aes(Time, energy, color = minT), linewidth = 1.5) +
+  facet_wrap(~ winter , ncol= 1, scales = 'free_x') +
+  scale_color_gradientn(colours = rev(RColorBrewer::brewer.pal(11, 'RdYlBu'))) +
+  geom_vline(xintercept= conv.layer$Time[ which(abs(conv.layer$minT - 4) < 0.01)], col = "red") +
+  ylab('Internal energy (J/m2)') + theme_bw(); p1
 
-temp_long |>
-  na.omit() |> 
-  plot_ly(y = ~value, x = ~variable, z = ~Time, split = ~Time,
-          type = 'scatter3d', mode = 'lines', color = ~Time)
-
-
-temp_long = temp_long %>% rename(Depth = variable, Temp = value) %>%
-  mutate(Depth = as.numeric(as.character(Depth)))
-# change depth to height above ground
-temp_long$Depth <- max(temp_long$Depth, na.rm = TRUE) - temp_long$Depth
+ggsave(filename = 'figs/energy.png', plot = p1, width = 15, height = 20, units = 'cm')
 
 
-temp_ggplot = temp_long %>% filter(!is.na(winter)) %>% mutate(doy = yday(Time))
-ggplot(temp_ggplot) +
-  geom_line(aes(Temp, Depth, col = doy, group = doy)) +
-  facet_wrap(~ winter)
-
-temp_long = temp_long %>% filter(!is.na(winter)) %>% filter(winter == 'winter19-20') %>%
-  select(Time, Depth, Temp)
-## we need to prepare the data in a specific format
-# subset of days and remove NAs
-
-dat2 <- split(temp_long, as.factor(temp_long$Time))
-
-# between each polygon we need NAs and to get a filled polygon we need two
-# points for boarders. this is not very elegant but it works
-dat3 <- rbind(dat2[[1]],
-              data.frame(Time = dat2[[1]]$Time[1],
-                         Depth = min(dat2[[1]]$Depth),
-                         Temp = 0),
-              data.frame(Time = dat2[[1]]$Time[1],
-                         Depth = max(dat2[[1]]$Depth),
-                         Temp = 0))
-for (i in 2:length(dat2)) {
-  dat3 <- rbind(dat3,
-                data.frame(Time = NA,
-                           Depth = NA,
-                           Temp = NA),
-                dat2[[i]],
-                data.frame(Time = dat2[[i]]$Time[1],
-                           Depth = min(dat2[[i]]$Depth),
-                           Temp = 0),
-                data.frame(Time = dat2[[i]]$Time[1],
-                           Depth = max(dat2[[i]]$Depth),
-                           Temp = 0))
-}
-
-
-x <- dat3$Temp
-z <- dat3$Depth
-#+ need to rescale date as the function doesnt take Posix as input
-y <- (month(dat3$Time)+day(dat3$Time)/30) #* (-1)
-
-
-# transparent colors (alpha)
-par(mar=c(7,7,1,1), oma=c(0,0,0,0),bg = "slategray")
-pmat <- polygon3D(x, y, z, border = "black", lwd = 0.75,
-                  col = gg.col(1, alpha = 0.5), bg = "white",
-                  xlab = "Temperature (°C)", ylab = "Month",
-                  zlab = "Depth (m)", ticktype = "detailed",
-                  theta = 50, phi = 10, axes = FALSE, box = TRUE,
-                  expand = 0.75,
-                  bty = "b2", scale = FALSE)
-
-
-# data for own axis plots
-xa <- range(x, na.rm = TRUE)
-ya <- range(y, na.rm = TRUE)
-za <- range(z, na.rm = TRUE)
-# coordinates of ticks
-xt <- pretty(xa)[between(pretty(xa), min (x, na.rm = TRUE), max(x, na.rm = TRUE))]
-yt <- pretty(ya)[between(pretty(ya), min (y, na.rm = TRUE), max(y, na.rm = TRUE))]
-zt <- pretty(za)[between(pretty(za), min (z, na.rm = TRUE), max(z, na.rm = TRUE))]
-# lablels of ticks
-xl <- pretty(xa)[between(pretty(xa), min (x, na.rm = TRUE), max(x, na.rm = TRUE))]
-yl <- month.abb[pretty(ya)[between(pretty(ya), min (y, na.rm = TRUE), max(y, na.rm = TRUE))]]
-zl <- pretty(za)[between(pretty(za), min (z, na.rm = TRUE), max(z, na.rm = TRUE))]
-
-if(0 %in% intersect(xl, zl)) {
-  zl <- as.character(zl)
-  zl[zl == "0"] <- ""
-}
-
-# axis lines
-lines(trans3d(xa, min(ya), min(za), pmat) , col = 1, lwd = 2)
-lines(trans3d(max(xa), ya, min(za), pmat) , col = 1, lwd = 2)
-lines(trans3d(min(xa), min(ya), za, pmat) , col = 1, lwd = 2)
-# xaxis ticks
-tick.start <- trans3d(xt, min(ya), min(za), pmat)
-tick.end <- trans3d(xt, min(ya) - 0.2, min(za), pmat)
-segments(tick.start$x, tick.start$y, tick.end$x, tick.end$y, lwd = 2)
-# yaxis ticks
-tick.start <- trans3d(max(xa), yt, min(za), pmat)
-tick.end <- trans3d(max(xa) + 0.2, yt, min(za), pmat)
-segments(tick.start$x, tick.start$y, tick.end$x, tick.end$y, lwd = 2)
-#z axis ticks
-tick.start <- trans3d(min(xa), min(ya), zt, pmat)
-tick.end <- trans3d(min(xa), min(ya) - 0.2, zt, pmat)
-segments(tick.start$x, tick.start$y, tick.end$x, tick.end$y, lwd = 2)
-
-# xaxis tick labels
-label.pos <- trans3d(xt, min(ya) - 0.3, min(za), pmat)
-text(label.pos$x, label.pos$y, labels=xl, adj=c(0, NA), srt=270, cex=1.2)
-# yaxis tick labels
-label.pos <- trans3d(max(xa) + 0.3, yt, min(za), pmat)
-text(label.pos$x, label.pos$y, labels=yl, adj=c(0, NA), srt=-45, cex=1.2)
-# zaxis tick labels
-label.pos <- trans3d(min(xa), min(ya) - 0.5, zt, pmat)
-text(label.pos$x, label.pos$y, labels=zl, adj=c(0, NA), srt=270, cex=1.2)
-
-# xaxis label
-label.pos <- trans3d(quantile(xa, 0.25), min(ya) - 1, min(za), pmat)
-text(label.pos$x, label.pos$y, labels="Temp (°C)", adj=c(0, NA), srt=325, cex=1.3)
-# yaxis label
-label.pos <- trans3d(max(xa) + 2, quantile(ya, 0.35), min(za), pmat)
-text(label.pos$x, label.pos$y, labels="Month", adj=c(0, NA), srt=45, cex=1.3)
-# zaxis label
-label.pos <- trans3d(min(xa), min(ya) - 1.2, quantile(za, 0.7), pmat)
-text(label.pos$x, label.pos$y, labels="Level (m)", adj=c(0, NA), srt=280, cex=1.3)
-
-
+## DENSITy PLOT
 m.df <- reshape2::melt(df_temp, "Time")
 m.df$Time <- unique(df_day$Time)
+
+all.dates <- seq(as.Date('2018-11-01'), as.Date('2021-05-31'), by = 1)
+idx.dates <- which(all.dates %in% m.df$Time)
+all.df <- data.frame('Time' = all.dates[-idx.dates])
+df.empty = matrix(NA, nrow= length(all.dates[-idx.dates]), ncol = length(seq(0.15,7.5, 0.1)))
+colnames(df.empty) = as.character(seq(0.15,7.5, 0.1))
+all.df <- as.data.frame(cbind(all.df, df.empty))
+
+m.all.df <- reshape2::melt(all.df, "Time")
+m.all.df$value <- as.numeric(m.all.df$value)
+
+m.df <- rbind(m.df, m.all.df)
+m.df = m.df %>% arrange(Time, variable)
 
 m.df = m.df %>%
   mutate(year = year(Time),
          month = month(Time))
 
 m.df$winter = NA
-m.df$winter[m.df$month >= 12 & m.df$year == 2018] = 'winter18-19'
-m.df$winter[m.df$month <= 3 & m.df$year == 2019] = 'winter18-19'
-m.df$winter[m.df$month >= 12 & m.df$year == 2019] = 'winter19-20'
-m.df$winter[m.df$month <= 3 & m.df$year == 2020] = 'winter19-20'
-m.df$winter[m.df$month >= 12 & m.df$year == 2020] = 'winter20-21'
-m.df$winter[m.df$month <= 3 & m.df$year == 2021] = 'winter20-21'
+m.df$winter[m.df$month >= 11 & m.df$year == 2018] = 'winter18-19'
+m.df$winter[m.df$month < 5 & m.df$year == 2019] = 'winter18-19'
+m.df$winter[m.df$month >= 11 & m.df$year == 2019] = 'winter19-20'
+m.df$winter[m.df$month < 5 & m.df$year == 2020] = 'winter19-20'
+m.df$winter[m.df$month >= 11 & m.df$year == 2020] = 'winter20-21'
+m.df$winter[m.df$month < 5 & m.df$year == 2021] = 'winter20-21'
 
-g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), as.numeric(as.character(variable)))) +
-  geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
-  scale_fill_gradientn(limits = c(-1,4),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'Spectral')))+
+g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), as.numeric(as.character(variable)), z = water.density(as.numeric(value)))) +
+  geom_raster(aes(fill = water.density(as.numeric(value))), interpolate = TRUE) +
+  geom_contour(colour = 'black', breaks = c(water.density(3.5),water.density(3.0), water.density(2.5))) +
+  scale_fill_gradientn(limits = c(999.890,999.9999999999999999999999999999999),
+                       colours = rev(RColorBrewer::brewer.pal(11, 'PuBuGn')))+
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
-  labs(fill = 'Temp [degC]')+
-  ggtitle('Winter 18-19') +
+  labs(fill = 'Density [kg/m3]')+
+  ggtitle('Winter 18-19')+
   # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
   # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse()
+  scale_y_reverse(limits = c(3.5,0.15)) + theme_bw(); g1
 
-g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), as.numeric(as.character(variable)))) +
-  geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
-  scale_fill_gradientn(limits = c(-1,4),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'Spectral')))+
+g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), as.numeric(as.character(variable)), z = water.density(as.numeric(value)))) +
+  geom_raster(aes(fill = water.density(as.numeric(value))), interpolate = TRUE) +
+  geom_contour(colour = 'black', breaks = c(water.density(3.5),water.density(3.0), water.density(2.5))) +
+  scale_fill_gradientn(limits = c(999.890,999.9999999999999999999999999999999),
+                       colours = rev(RColorBrewer::brewer.pal(11, 'PuBuGn')))+
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
-  labs(fill = 'Temp [degC]')+
-  ggtitle('Winter 19-20') +
+  labs(fill = 'Density [kg/m3]')+
+  ggtitle('Winter 19-20')+
   # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
   # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse()
+  scale_y_reverse(limits = c(3.5,0.15)) + theme_bw(); g2
 
-g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes((Time), as.numeric(as.character(variable)))) +
-  geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
-  scale_fill_gradientn(limits = c(-1,4),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'Spectral')))+
+g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes(x=(Time),y= as.numeric(as.character(variable)), z = water.density(as.numeric(value)))) +
+  geom_raster(aes(fill = water.density(as.numeric(value))), interpolate = TRUE) +
+  geom_contour(colour = 'black', breaks = c(water.density(3.5),water.density(3.0), water.density(2.5))) +
+  scale_fill_gradientn(limits = c(999.890,999.9999999999999999999999999999999),
+                       colours = rev(RColorBrewer::brewer.pal(11, 'PuBuGn')))+
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
-  labs(fill = 'Temp [degC]')+
-  ggtitle('Winter 20-21') +
+  labs(fill = 'Density [kg/m3]')+
+  ggtitle('Winter 20-21')+
   # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
   # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse()
+  scale_y_reverse(limits = c(3.5,0.15)) + theme_bw() ; g3
 
-g1 / g2 / g3
+p2 <- g1 / g2 / g3
+ggsave(filename = 'figs/densitymap.png', plot = p2, width = 20, height = 20, units = 'cm')
+# write.csv(x = df_save,'~/Desktop/temp.csv', quote = F, row.names =  F)
+
+
+
+
 
 df_heat <- df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = as.Date(dateTime), weekday = wday(dateTime)) %>% 
   # dplyr::filter(weekday %in% c(1,4,7)) %>%

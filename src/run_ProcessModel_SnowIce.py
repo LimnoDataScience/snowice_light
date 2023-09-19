@@ -8,7 +8,7 @@ import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
 from numba import jit
-import smplotlib
+import matplotlib
 
 #os.chdir("/home/robert/Projects/LakePIAB/src")
 os.chdir("C:/Users/ladwi/Documents/Projects/R/snowice_light/src")
