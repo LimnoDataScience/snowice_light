@@ -44,9 +44,9 @@ ggplot(join.profiles) +
   ylab('Depth (m)') +
   xlab('Water Temperature (°C)') +
   facet_wrap(~lakename) +
-  theme_bw(base_size = 9)
+  theme_bw(base_size = 9) 
 
 
-ggsave('figs/tempProfiles.png', width = 6, height = 4, dpi = 500)
+ggsave('figs/tempProfiles.png', width = 6, height = 3.5, dpi = 500)
 
 
