@@ -485,47 +485,54 @@ m_df_timeseries = m.df %>%
          hour = hour(Time),
          week = week(Time),
          datetime = ifelse(month > 6, lubridate::make_datetime(2020, month, day, hour, 0, 0), lubridate::make_datetime(2021, month, day, hour, 0, 0)),
-         plot_label = (format(Time, format ='%m-%d %H:00:00') ))
+         plot_label = (format(Time, format ='%m-%d %H:00:00') )) %>%
+  filter(!is.na(winter))
 
 ggplot(m_df_timeseries %>% filter(variable == 0.75 & !is.na(winter) & week == 2)) +
   geom_line(aes(datetime, value, color = winter))
 
 as.POSIXct((m_df_timeseries$datetime), origin='1970-01-01') 
 library(scales)
-plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
-plot_breaks = seq(1, length(m_df_timeseries$datetime), 100000)
+plot_datetime = m_df_timeseries$datetime
+# plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
+plot_breaks = seq(min(plot_datetime), max(plot_datetime), 1000000)
+plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
+match(plot_breaks, plot_datetime)
 
 
-ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75 & !is.na(winter)), aes(datetime, value, color = winter)) +
+ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75), aes(datetime, value, color = winter)) +
   geom_line() +
   ylab('Water temperature (\u00B0C)') +
-  scale_x_continuous(breaks = plot_breaks,labels= plot_label[plot_breaks]) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   ggtitle("0.75 m depth") +
-  theme_bw() +theme(legend.position = "bottom"); ts1
-
-ts2 <- ggplot(m_df_timeseries %>% filter(variable == 1.55 & !is.na(winter))) +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); ts1
+ts2 <- ggplot(m_df_timeseries %>% filter(variable == 1.55 )) +
   geom_line(aes(datetime, value, color = winter)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("1.55 m depth") +
-  theme_bw() +theme(legend.position = "bottom")
-ts3 <- ggplot(m_df_timeseries %>% filter(variable == 2.55 & !is.na(winter))) +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts3 <- ggplot(m_df_timeseries %>% filter(variable == 2.55 )) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   geom_line(aes(datetime, value, color = winter)) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("2.55 m depth") +
-  theme_bw() +theme(legend.position = "bottom")
-ts4 <- ggplot(m_df_timeseries %>% filter(variable == 3.05 & !is.na(winter))) +
+  theme_bw() +theme(legend.position = "bottom" ,axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts4 <- ggplot(m_df_timeseries %>% filter(variable == 3.05)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   geom_line(aes(datetime, value, color = winter)) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("3.05 m depth") +
-  theme_bw() +theme(legend.position = "bottom")
-ts5 <- ggplot(m_df_timeseries %>% filter(variable == 7.45 & !is.na(winter))) +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts5 <- ggplot(m_df_timeseries %>% filter(variable == 7.45 )) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   geom_line(aes(datetime, value, color = winter)) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("7.45 m depth") +
-  theme_bw() +theme(legend.position = "bottom")
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
 
 p3=ts1/ts2/ts3/ts4/ts5 +plot_layout(guides = "collect") & theme(legend.position = 'bottom')& plot_annotation(tag_levels = 'A');p3
-
+ggsave(filename = 'figs/wtemptimeseries.png', plot = p3, width = 30, height = 40, units = 'cm')
 ####
 
 df_heat <- df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = as.Date(dateTime), weekday = wday(dateTime)) %>% 
