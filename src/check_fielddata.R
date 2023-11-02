@@ -312,87 +312,92 @@ ggsave(filename = 'figs/densitymap.png', plot = p2, width = 20, height = 20, uni
 
 
 # CHECK HOURLY
+# 
+# df_hour <- df %>%
+#   # mutate(hour = hour(dateTime),
+#   #        Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>%
+#   mutate(hour = hour(dateTime),
+#          Time = (dateTime),
+#          Dateie = as.Date(Time), 
+#          Date = as.POSIXct(paste0(Dateie,' ',hour,':00:00'))) %>%
+#   
+#   group_by(Date, Depth_m) %>%
+#   arrange(Depth_m) %>%
+#   summarise(Temp = mean(Temp_C)) %>%
+#   select(Date, Depth_m, Temp)
+# 
+# 
+# 
+# dz = 0.1
+# depths = seq(0.15, max(df_hour$Depth_m), dz)
+# df_temp = matrix(NA, nrow = length(unique(df_hour$Date)), ncol = 1 + length(depths))
+# df_temp = as.data.frame(df_temp)
+# colnames(df_temp) = c('Time', depths)
+# 
+# conv.layer <- data.frame('Time' = NA,
+#                          'Buoydep' = NA,
+#                          'Convdep' = NA,
+#                          'energy' = NA,
+#                          'minT' = NA)
+# conv.layer$Time = as.Date(conv.layer$Time)
+# 
+# for (t in unique(df_hour$Date)){
+#   
+#   print(round((match(t, unique(df_hour$Date)) * 100)/length( unique(df_hour$Date))),2)
+#   data = df_hour %>%
+#     filter(Date == t) %>%
+#     arrange(Depth_m)
+#   
+#   if (nrow(data) <2){
+#     next  
+#   }
+#   
+#   interpolated <- approx(data$Depth_m, data$Temp, seq(0.15,  max(df_hour$Depth_m), dz) , rule = 2)
+#   
+#   buoy.dep <- center.buoyancy(interpolated$y, interpolated$x)
+#   
+#   idx = match(mean(data$Date),  unique(df_hour$Date))
+#   
+#   # df_temp[idx,] = c(mean(data$Time), interpolated$y)
+#   df_temp$Time[idx] = as.Date(mean(data$Date))
+#   df_temp[idx, 2:ncol(df_temp)] = interpolated$y
+#   
+#   
+#   df.test = data.frame('depth' = interpolated$x,
+#                        'temp' = interpolated$y) %>%
+#     mutate(            'density'= water.density( temp),
+#                        'diff.dens' = c(NA, diff(density)),
+#                        'diff.temp' = c(NA, diff(temp))) %>%
+#     mutate(flag.dens = abs(diff.dens)< 1e-5,
+#            flag.temp = abs(diff.temp) < 1e-3,
+#            flag = ifelse(flag.dens == T & flag.temp == T, T, F))
+#   
+#   if (any(na.omit(df.test$flag) == T)){
+#     conv.layer.depth = df.test %>% filter(flag == T) %>%
+#       summarise(max(depth))
+#   } else {
+#     conv.layer.depth = NA
+#   }
+#   
+#   bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 'voldev', zinterval = dz)
+#   energy = internal.energy(wtr = interpolated$y, depths=interpolated$x,
+#                            bthA = bathymetry$Area.at.z, bthD = bathymetry$depths)
+#   
+#   conv.layer = rbind(conv.layer, data.frame('Time' = as.Date(mean(data$Date)),
+#                                             'Buoydep' = buoy.dep,
+#                                             'Convdep' = as.numeric(conv.layer.depth),
+#                                             'energy' = energy,
+#                                             'minT' = min(interpolated$y)))
+# }
+# 
+# write.csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv', quote = F, row.names = F)
+# write.csv(x = conv.layer.depth, file = 'output/interpolated_hourly_convective.csv', quote = F, row.names = F)
+# 
 
-df_hour <- df %>%
-  # mutate(hour = hour(dateTime),
-  #        Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>%
-  mutate(hour = hour(dateTime),
-         Time = (dateTime),
-         Dateie = as.Date(Time), 
-         Date = as.POSIXct(paste0(Dateie,' ',hour,':00:00'))) %>%
-  
-  group_by(Date, Depth_m) %>%
-  arrange(Depth_m) %>%
-  summarise(Temp = mean(Temp_C)) %>%
-  select(Date, Depth_m, Temp)
 
-
-
-dz = 0.1
-depths = seq(0.15, max(df_hour$Depth_m), dz)
-df_temp = matrix(NA, nrow = length(unique(df_hour$Date)), ncol = 1 + length(depths))
-df_temp = as.data.frame(df_temp)
-colnames(df_temp) = c('Time', depths)
-
-conv.layer <- data.frame('Time' = NA,
-                         'Buoydep' = NA,
-                         'Convdep' = NA,
-                         'energy' = NA,
-                         'minT' = NA)
-conv.layer$Time = as.Date(conv.layer$Time)
-
-for (t in unique(df_hour$Date)){
-  
-  print(round((match(t, unique(df_hour$Date)) * 100)/length( unique(df_hour$Date))),2)
-  data = df_hour %>%
-    filter(Date == t) %>%
-    arrange(Depth_m)
-  
-  if (nrow(data) <2){
-    next  
-  }
-  
-  interpolated <- approx(data$Depth_m, data$Temp, seq(0.15,  max(df_hour$Depth_m), dz) , rule = 2)
-  
-  buoy.dep <- center.buoyancy(interpolated$y, interpolated$x)
-  
-  idx = match(mean(data$Date),  unique(df_hour$Date))
-  
-  # df_temp[idx,] = c(mean(data$Time), interpolated$y)
-  df_temp$Time[idx] = as.Date(mean(data$Date))
-  df_temp[idx, 2:ncol(df_temp)] = interpolated$y
-  
-  
-  df.test = data.frame('depth' = interpolated$x,
-                       'temp' = interpolated$y) %>%
-    mutate(            'density'= water.density( temp),
-                       'diff.dens' = c(NA, diff(density)),
-                       'diff.temp' = c(NA, diff(temp))) %>%
-    mutate(flag.dens = abs(diff.dens)< 1e-5,
-           flag.temp = abs(diff.temp) < 1e-3,
-           flag = ifelse(flag.dens == T & flag.temp == T, T, F))
-  
-  if (any(na.omit(df.test$flag) == T)){
-    conv.layer.depth = df.test %>% filter(flag == T) %>%
-      summarise(max(depth))
-  } else {
-    conv.layer.depth = NA
-  }
-  
-  bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 'voldev', zinterval = dz)
-  energy = internal.energy(wtr = interpolated$y, depths=interpolated$x,
-                           bthA = bathymetry$Area.at.z, bthD = bathymetry$depths)
-  
-  conv.layer = rbind(conv.layer, data.frame('Time' = as.Date(mean(data$Date)),
-                                            'Buoydep' = buoy.dep,
-                                            'Convdep' = as.numeric(conv.layer.depth),
-                                            'energy' = energy,
-                                            'minT' = min(interpolated$y)))
-}
-
-write.csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv', quote = F, row.names = F)
-write.csv(x = conv.layer.depth, file = 'output/interpolated_hourly_convective.csv', quote = F, row.names = F)
 ## DENSITy PLOT
+
+df_temp = read.csv("output/interpolated_hourly_wtemp.csv")
 m.df <- reshape2::melt(df_temp, "Time")
 m.df$Time <- unique(df_hour$Date)
 
@@ -491,12 +496,13 @@ plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
 plot_breaks = seq(1, length(m_df_timeseries$datetime), 100000)
 
 
-ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75 & !is.na(winter))) +
-  geom_line(aes(datetime, value, color = winter)) +
+ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75 & !is.na(winter)), aes(datetime, value, color = winter)) +
+  geom_line() +
   ylab('Water temperature (\u00B0C)') +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label[plot_breaks]) +
   ggtitle("0.75 m depth") +
   theme_bw() +theme(legend.position = "bottom"); ts1
+
 ts2 <- ggplot(m_df_timeseries %>% filter(variable == 1.55 & !is.na(winter))) +
   geom_line(aes(datetime, value, color = winter)) +
   ylab('Water temperature (\u00B0C)') +
