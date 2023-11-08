@@ -311,97 +311,101 @@ ggsave(filename = 'figs/densitymap.png', plot = p2, width = 20, height = 20, uni
 
 
 
-# CHECK HOURLY
-# 
-# df_hour <- df %>%
-#   # mutate(hour = hour(dateTime),
-#   #        Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>%
-#   mutate(hour = hour(dateTime),
-#          Time = (dateTime),
-#          Dateie = as.Date(Time), 
-#          Date = as.POSIXct(paste0(Dateie,' ',hour,':00:00'))) %>%
-#   
-#   group_by(Date, Depth_m) %>%
-#   arrange(Depth_m) %>%
-#   summarise(Temp = mean(Temp_C)) %>%
-#   select(Date, Depth_m, Temp)
-# 
-# 
-# 
-# dz = 0.1
-# depths = seq(0.15, max(df_hour$Depth_m), dz)
-# df_temp = matrix(NA, nrow = length(unique(df_hour$Date)), ncol = 1 + length(depths))
-# df_temp = as.data.frame(df_temp)
-# colnames(df_temp) = c('Time', depths)
-# 
-# conv.layer <- data.frame('Time' = NA,
-#                          'Buoydep' = NA,
-#                          'Convdep' = NA,
-#                          'energy' = NA,
-#                          'minT' = NA)
-# conv.layer$Time = as.Date(conv.layer$Time)
-# 
-# for (t in unique(df_hour$Date)){
-#   
-#   print(round((match(t, unique(df_hour$Date)) * 100)/length( unique(df_hour$Date))),2)
-#   data = df_hour %>%
-#     filter(Date == t) %>%
-#     arrange(Depth_m)
-#   
-#   if (nrow(data) <2){
-#     next  
-#   }
-#   
-#   interpolated <- approx(data$Depth_m, data$Temp, seq(0.15,  max(df_hour$Depth_m), dz) , rule = 2)
-#   
-#   buoy.dep <- center.buoyancy(interpolated$y, interpolated$x)
-#   
-#   idx = match(mean(data$Date),  unique(df_hour$Date))
-#   
-#   # df_temp[idx,] = c(mean(data$Time), interpolated$y)
-#   df_temp$Time[idx] = as.Date(mean(data$Date))
-#   df_temp[idx, 2:ncol(df_temp)] = interpolated$y
-#   
-#   
-#   df.test = data.frame('depth' = interpolated$x,
-#                        'temp' = interpolated$y) %>%
-#     mutate(            'density'= water.density( temp),
-#                        'diff.dens' = c(NA, diff(density)),
-#                        'diff.temp' = c(NA, diff(temp))) %>%
-#     mutate(flag.dens = abs(diff.dens)< 1e-5,
-#            flag.temp = abs(diff.temp) < 1e-3,
-#            flag = ifelse(flag.dens == T & flag.temp == T, T, F))
-#   
-#   if (any(na.omit(df.test$flag) == T)){
-#     conv.layer.depth = df.test %>% filter(flag == T) %>%
-#       summarise(max(depth))
-#   } else {
-#     conv.layer.depth = NA
-#   }
-#   
-#   bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 'voldev', zinterval = dz)
-#   energy = internal.energy(wtr = interpolated$y, depths=interpolated$x,
-#                            bthA = bathymetry$Area.at.z, bthD = bathymetry$depths)
-#   
-#   conv.layer = rbind(conv.layer, data.frame('Time' = as.Date(mean(data$Date)),
-#                                             'Buoydep' = buoy.dep,
-#                                             'Convdep' = as.numeric(conv.layer.depth),
-#                                             'energy' = energy,
-#                                             'minT' = min(interpolated$y)))
-# }
-# 
+#CHECK HOURLY
+
+df_hour <- df %>%
+  # mutate(hour = hour(dateTime),
+  #        Time = as.POSIXct(paste0(as.Date(dateTime),' ', hour,':00:00'))) %>%
+  mutate(hour = hour(dateTime),
+         Time = (dateTime),
+         Dateie = as.Date(Time),
+         Date = as.POSIXct(paste0(Dateie,' ',hour,':00:00'))) %>%
+
+  group_by(Date, Depth_m) %>%
+  arrange(Depth_m) %>%
+  summarise(Temp = mean(Temp_C)) %>%
+  select(Date, Depth_m, Temp)
+
+
+
+dz = 0.1
+depths = seq(0.15, max(df_hour$Depth_m), dz)
+df_temp = matrix(NA, nrow = length(unique(df_hour$Date)), ncol = 1 + length(depths))
+df_temp = as.data.frame(df_temp)
+colnames(df_temp) = c('Time', depths)
+
+conv.layer <- data.frame('Time' = NULL,
+                         'Buoydep' = NULL,
+                         'Convdep' = NULL,
+                         'energy' = NULL,
+                         'minT' = NULL)
+conv.layer$Time = as.Date(conv.layer$Time)
+
+for (t in unique(df_hour$Date)){
+
+  print(round((match(t, unique(df_hour$Date)) * 100)/length( unique(df_hour$Date))),2)
+  data = df_hour %>%
+    filter(Date == t) %>%
+    arrange(Depth_m)
+
+  if (nrow(data) <2){
+    next
+  }
+
+  interpolated <- approx(data$Depth_m, data$Temp, seq(0.15,  max(df_hour$Depth_m), dz) , rule = 2)
+
+  buoy.dep <- center.buoyancy(interpolated$y, interpolated$x)
+
+  idx = match(mean(data$Date),  unique(df_hour$Date))
+
+  # df_temp[idx,] = c(mean(data$Time), interpolated$y)
+  df_temp$Time[idx] = as.Date(mean(data$Date))
+  df_temp[idx, 2:ncol(df_temp)] = interpolated$y
+
+
+  df.test = data.frame('depth' = interpolated$x,
+                       'temp' = interpolated$y) %>%
+    mutate(            'density'= water.density( temp),
+                       'diff.dens' = c(NA, diff(density)),
+                       'diff.temp' = c(NA, diff(temp))) %>%
+    mutate(flag.dens = abs(diff.dens)< 1e-5,
+           flag.temp = abs(diff.temp) < 1e-3,
+           flag = ifelse(flag.dens == T & flag.temp == T, T, F))
+
+  if (any(na.omit(df.test$flag) == T)){
+    conv.layer.depth = df.test %>% filter(flag == T) %>%
+      summarise(max(depth))
+  } else {
+    conv.layer.depth = NA
+  }
+
+  bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 'voldev', zinterval = dz)
+  energy = internal.energy(wtr = interpolated$y, depths=interpolated$x,
+                           bthA = bathymetry$Area.at.z, bthD = bathymetry$depths)
+
+  conv.layer = rbind(conv.layer, data.frame('Time' = (mean(data$Date)),
+                                            'Buoydep' = buoy.dep,
+                                            'Convdep' = as.numeric(conv.layer.depth),
+                                            'energy' = energy,
+                                            'minT' = min(interpolated$y)))
+}
+
 # write.csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv', quote = F, row.names = F)
-# write.csv(x = conv.layer.depth, file = 'output/interpolated_hourly_convective.csv', quote = F, row.names = F)
-# 
+write.csv(x = conv.layer, file = 'output/interpolated_hourly_convective.csv', quote = F, row.names = F)
+
 
 
 ## DENSITy PLOT
-
-df_temp = read.csv("output/interpolated_hourly_wtemp.csv")
+# conv.layer = read.csv("output/interpolated_hourly_convective.csv") %>% mutate(Time = as.POSIXct(Time))
+df_temp = read.csv("output/interpolated_hourly_wtemp.csv") 
+df_temp$Time <- unique(df_hour$Date)
 m.df <- reshape2::melt(df_temp, "Time")
-m.df$Time <- unique(df_hour$Date)
+# idx = match(m.df$Time, as.numeric(df_temp$Time))
 
-all.dates <- seq(as.Date('2018-11-01 00:00:00'), as.Date('2021-05-31 00:00:00'), by = 1)
+
+all.dates <- seq(as.POSIXct('2018-11-01 00:00:00'), as.POSIXct('2021-05-31 00:00:00'), by = 3600)
+idx = match(m.df$Time, as.numeric(all.dates))
+
 idx.dates <- which(all.dates %in% m.df$Time)
 all.df <- data.frame('Time' = all.dates[-idx.dates])
 df.empty = matrix(NA, nrow= length(all.dates[-idx.dates]), ncol = length(seq(0.15,7.5, 0.1)))
@@ -410,6 +414,7 @@ all.df <- as.data.frame(cbind(all.df, df.empty))
 
 m.all.df <- reshape2::melt(all.df, "Time")
 m.all.df$value <- as.numeric(m.all.df$value)
+
 
 m.df <- rbind(m.df, m.all.df)
 m.df = m.df %>% arrange(Time, variable)
@@ -428,13 +433,15 @@ m.df$winter[m.df$month < 5 & m.df$year == 2021] = 'winter20-21'
 
 brks = c(4,(3.5),(3.0), (2.5),0.5)
 
-g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), as.numeric(as.character(variable)), z = (as.numeric(value)))) +
+m.df$variable = as.numeric(gsub("X",'',m.df$variable))
+
+g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), ((variable)), z = (as.numeric(value)))) +
   geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
   geom_contour(colour = 'black', breaks = brks) +
   scale_fill_gradientn(limits = c(0,8),
                        colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
   # metR::geom_text_contour(aes(z = value)) +
-  geom_dl(aes(label=..level..), method="bottom.pieces", 
+  geom_dl(aes(label=..level..), method="bottom.pieces",
           stat="contour",breaks = brks) +
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
@@ -444,12 +451,12 @@ g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), as.numeric(as
   # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
   scale_y_reverse(limits = c(7.45,0.7)) + theme_bw()+theme(legend.position = "bottom"); g1
 
-g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), as.numeric(as.character(variable)), z = (as.numeric(value)))) +
+g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), ((variable)), z = (as.numeric(value)))) +
   geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
   geom_contour(colour = 'black', breaks = c(4,(3.5),(3.0), (2.5),0.5)) +
   scale_fill_gradientn(limits = c(0,8),
                        colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
-  geom_dl(aes(label=..level..), method="bottom.pieces", 
+  geom_dl(aes(label=..level..), method="bottom.pieces",
           stat="contour",breaks = brks) +
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
@@ -459,12 +466,12 @@ g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), as.numeric(as
   # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
   scale_y_reverse(limits = c(7.45,0.7)) + theme_bw()+theme(legend.position = "bottom"); g2
 
-g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes(x=(Time),y= as.numeric(as.character(variable)), z = (as.numeric(value)))) +
+g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes(x=(Time),y= ((variable)), z = (as.numeric(value)))) +
   geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
   geom_contour(colour = 'black', breaks = c(4,(3.5),(3.0), (2.5),0.5)) +
   scale_fill_gradientn(limits = c(0,8),
                        colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
-  geom_dl(aes(label=..level..), method="bottom.pieces", 
+  geom_dl(aes(label=..level..), method="bottom.pieces",
           stat="contour",breaks = brks) +
   theme_minimal()  +xlab('Time') +
   ylab('Depth [m]') +
@@ -495,7 +502,7 @@ as.POSIXct((m_df_timeseries$datetime), origin='1970-01-01')
 library(scales)
 plot_datetime = m_df_timeseries$datetime
 # plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
-plot_breaks = seq(min(plot_datetime), max(plot_datetime), 1000000)
+plot_breaks = seq(min(plot_datetime), max(plot_datetime), 2000000)
 plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
 match(plot_breaks, plot_datetime)
 
@@ -504,36 +511,194 @@ ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75), aes(datetime, value,
   geom_line() +
   ylab('Water temperature (\u00B0C)') +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   ggtitle("0.75 m depth") +
-  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); ts1
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); ts1
 ts2 <- ggplot(m_df_timeseries %>% filter(variable == 1.55 )) +
-  geom_line(aes(datetime, value, color = winter)) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("1.55 m depth") +
-  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
 ts3 <- ggplot(m_df_timeseries %>% filter(variable == 2.55 )) +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
-  geom_line(aes(datetime, value, color = winter)) +
+  ylim(3.2, 4.5) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("2.55 m depth") +
-  theme_bw() +theme(legend.position = "bottom" ,axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+  theme_bw() +theme(legend.position = "bottom" ,axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
 ts4 <- ggplot(m_df_timeseries %>% filter(variable == 3.05)) +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
-  geom_line(aes(datetime, value, color = winter)) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.2, 4.5) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("3.05 m depth") +
-  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
-ts5 <- ggplot(m_df_timeseries %>% filter(variable == 7.45 )) +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts5 <- ggplot(m_df_timeseries %>% filter(variable == 5.45)) +
   scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
-  geom_line(aes(datetime, value, color = winter)) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.5, 4.5) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("5.45 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts6 <- ggplot(m_df_timeseries %>% filter(variable == 7.45 )) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.7, 4.5) +
   ylab('Water temperature (\u00B0C)') +
   ggtitle("7.45 m depth") +
-  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
 
-p3=ts1/ts2/ts3/ts4/ts5 +plot_layout(guides = "collect") & theme(legend.position = 'bottom')& plot_annotation(tag_levels = 'A');p3
-ggsave(filename = 'figs/wtemptimeseries.png', plot = p3, width = 30, height = 40, units = 'cm')
+p3=((ts1/ts2/ts3) | (ts4/ts5/ts6)) + plot_annotation(tag_levels = 'A')+plot_layout(guides = "collect") & theme(legend.position = 'bottom');p3
+ggsave(filename = 'figs/wtemptimeseries.png', plot = p3, width = 30, height = 30, units = 'cm')
 ####
+plot_datetime = m_df_timeseries$datetime
+# plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
+plot_breaks = seq(min(plot_datetime), max(plot_datetime), 3600*24 )
+plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
+match(plot_breaks, plot_datetime)
+week_plot = 2
+ts1 <- ggplot(m_df_timeseries %>% filter(variable == 0.75 & week ==week_plot), aes(datetime, value, color = winter)) +
+  geom_line() +
+  ylab('Water temperature (\u00B0C)') +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ggtitle("0.75 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); ts1
+ts2 <- ggplot(m_df_timeseries %>% filter(variable == 1.55 & week ==week_plot)) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("1.55 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts3 <- ggplot(m_df_timeseries %>% filter(variable == 2.55 & week ==week_plot)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  ylim(3.2, 4.5) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("2.55 m depth") +
+  theme_bw() +theme(legend.position = "bottom" ,axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts4 <- ggplot(m_df_timeseries %>% filter(variable == 3.05& week ==week_plot)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.2, 4.5) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("3.05 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts5 <- ggplot(m_df_timeseries %>% filter(variable == 5.45& week ==week_plot)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.5, 4.5) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("5.45 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+ts6 <- ggplot(m_df_timeseries %>% filter(variable == 7.45 & week ==week_plot)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.7, 4.5) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("7.45 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank())
+
+p3=((ts1/ts2/ts3) | (ts4/ts5/ts6)) + plot_annotation(tag_levels = 'A')+plot_layout(guides = "collect") & theme(legend.position = 'bottom');p3
+ggsave(filename = 'figs/wtemptimeseries_week.png', plot = p3, width = 30, height = 30, units = 'cm')
+
+ts6_deep <- ggplot(m_df_timeseries %>% filter(variable == 7.45 & week == 2)) +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  geom_line(aes(datetime, value, color = winter)) +  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  ylim(3.7, 4.5) +
+  ylab('Water temperature (\u00B0C)') +
+  ggtitle("7.45 m depth") +
+  theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank());ts6_deep
+
+
+####
+
+conv.layer = read.csv("output/interpolated_hourly_convective.csv") %>% mutate(Time = as.POSIXct(Time))
+# conv.layer$Time <- unique(df_hour$Date)
+all.dates <- seq(as.POSIXct('2018-11-01 00:00:00'), as.POSIXct('2021-05-31 00:00:00'), by = 3600)
+idx.dates <- which(all.dates %in% conv.layer$Time)
+
+add.dates <- data.frame('Time' = all.dates[-idx.dates],
+                        'Buoydep' = NA,
+                        'Convdep' = NA,
+                        'energy' = NA,
+                        'minT' = NA)
+
+conv.layer <- rbind(conv.layer, add.dates) %>% arrange(Time)
+
+
+conv.layer = conv.layer %>% 
+  mutate(doy = yday(Time), year = year(Time), month = month(Time))
+conv.layer$winter = NA
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2018] = 'winter18-19'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2019] = 'winter18-19'
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2019] = 'winter19-20'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2020] = 'winter19-20'
+conv.layer$winter[conv.layer$month >= 11 & conv.layer$year == 2020] = 'winter20-21'
+conv.layer$winter[conv.layer$month <= 5 & conv.layer$year == 2021] = 'winter20-21'
+
+ggplot(conv.layer %>% filter(!is.na(winter))) +
+  geom_point(aes(doy, energy)) +
+  facet_wrap(~ winter + factor(month, levels = c(10, 11,12,1,2,3,4,5,6)), ncol =  9, scales = 'free_x')
+
+winter.layer = conv.layer %>% filter(!is.na(winter)) %>%
+  mutate(col =ifelse(winter == 'winter18-19', '#34cceb', ifelse(winter == 'winter19-20','#1b535e' ,'#dead1b'))) %>%
+  mutate(date = as.Date(format(Time, format ='%m-%d'), format ='%m-%d' )) %>%
+  mutate(day = day(Time),
+         hour = hour(Time),
+         week = week(Time),
+         datetime = ifelse(month > 6, lubridate::make_datetime(2020, month, day, hour, 0, 0), lubridate::make_datetime(2021, month, day, hour, 0, 0))) %>%
+  filter(!is.na(winter))
+
+
+
+library(scales)
+plot_datetime = winter.layer$datetime
+# plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
+plot_breaks = seq(min(plot_datetime), max(plot_datetime), 1000000)
+plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
+match(plot_breaks, plot_datetime)
+
+p1 <- ggplot(winter.layer) +
+  geom_line(aes(datetime, energy,  col = winter), linewidth = 1.0) +
+  # facet_wrap(~ winter , ncol= 1, scales = 'free_x') +
+  # scale_color_gradientn(colours = rev(RColorBrewer::brewer.pal(11, 'RdYlBu'))) +
+  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  ylim(5e7, 1.25e8)+
+  labs(y = expression(paste("Internal energy (J ",m^-2,")")), x = "") +
+  geom_vline(xintercept= winter.layer$datetime[ which(abs(winter.layer$minT - 4) < 0.003)], col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)]) +
+  theme_bw()+theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); p1
+
+ggsave(filename = 'figs/energy_hourly.png', plot = p1, width = 30, height = 15, units = 'cm')
+
+winter.layer %>% filter(winter == 'winter18-19') %>%
+  summarise(min = min(energy, na.rm =T))
+winter.layer %>% filter(winter == 'winter19-20') %>%
+  summarise(min = min(energy, na.rm =T))
+winter.layer %>% filter(winter == 'winter20-21') %>%
+  summarise(min = min(energy, na.rm =T))
+###
+
+
+
+
+
 
 df_heat <- df %>% dplyr::filter(!is.na(winter)) %>% mutate(date = as.Date(dateTime), weekday = wday(dateTime)) %>% 
   # dplyr::filter(weekday %in% c(1,4,7)) %>%
