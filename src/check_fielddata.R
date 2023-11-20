@@ -11,6 +11,10 @@ library(plotly)
 # library(plot3D)
 library(grDevices)
 library(directlabels)
+library(gtable)
+library(cowplot)
+library(grid)
+
 
 # setwd("C:/Documents and Settings/ladwi/Documents/Projects/R/snowice_light/")
 # setwd('/home/robert/Projects/snowice_light')
@@ -123,14 +127,95 @@ p1 <-ggplot(df_plot %>%
   scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   xlim(999.990, 1000.0001)+
   scale_shape_discrete(name = "")+
-  facet_wrap(~ factor(month, levels = c(12,1,2,3,4)), ncol =  5, scales = 'free') + theme_bw();p1
+  facet_wrap(~ factor(month, levels = c(12,1,2,3,4)), ncol =  3, scales = 'free') + theme_bw()+theme(legend.position = "right");p1
 # theme_bw() +theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); p1
 
-ggsave(filename = 'figs/density_profile.png', plot = p1, width = 55, height = 15, units = 'cm')
+#ggsave(filename = 'figs/density_profile.png', plot = p1, width = 55, height = 15, units = 'cm')
 
 
+shift_legend <- function(p){
+  
+  # check if p is a valid object
+  if(!"gtable" %in% class(p)){
+    if("ggplot" %in% class(p)){
+      gp <- ggplotGrob(p) # convert to grob
+    } else {
+      message("This is neither a ggplot object nor a grob generated from ggplotGrob. Returning original plot.")
+      return(p)
+    }
+  } else {
+    gp <- p
+  }
+  
+  # check for unfilled facet panels
+  facet.panels <- grep("^panel", gp[["layout"]][["name"]])
+  empty.facet.panels <- sapply(facet.panels, function(i) "zeroGrob" %in% class(gp[["grobs"]][[i]]))
+  empty.facet.panels <- facet.panels[empty.facet.panels]
+  if(length(empty.facet.panels) == 0){
+    message("There are no unfilled facet panels to shift legend into. Returning original plot.")
+    return(p)
+  }
+  
+  # establish extent of unfilled facet panels (including any axis cells in between)
+  empty.facet.panels <- gp[["layout"]][empty.facet.panels, ]
+  empty.facet.panels <- list(min(empty.facet.panels[["t"]]), min(empty.facet.panels[["l"]]),
+                             max(empty.facet.panels[["b"]]), max(empty.facet.panels[["r"]]))
+  names(empty.facet.panels) <- c("t", "l", "b", "r")
+  
+  # extract legend & copy over to location of unfilled facet panels
+  guide.grob <- which(gp[["layout"]][["name"]] == "guide-box")
+  if(length(guide.grob) == 0){
+    message("There is no legend present. Returning original plot.")
+    return(p)
+  }
+  gp <- gtable_add_grob(x = gp,
+                        grobs = gp[["grobs"]][[guide.grob]],
+                        t = empty.facet.panels[["t"]],
+                        l = empty.facet.panels[["l"]],
+                        b = empty.facet.panels[["b"]],
+                        r = empty.facet.panels[["r"]],
+                        name = "new-guide-box")
+  
+  # squash the original guide box's row / column (whichever applicable)
+  # & empty its cell
+  guide.grob <- gp[["layout"]][guide.grob, ]
+  if(guide.grob[["l"]] == guide.grob[["r"]]){
+    gp <- gtable_squash_cols(gp, cols = guide.grob[["l"]])
+  }
+  if(guide.grob[["t"]] == guide.grob[["b"]]){
+    gp <- gtable_squash_rows(gp, rows = guide.grob[["t"]])
+  }
+  gp <- gtable_remove_grobs(gp, "guide-box")
+  
+  return(gp)
+}
 
 
+p1 <- ggplot(df_plot %>%
+               
+               group_by(date) %>%
+               filter(n_distinct(winter) == n_distinct(df_plot$winter)) %>%
+               mutate(water_dens = water.density(Temp)/water.density(4.0),
+                      dens_flag = ifelse(water.density(Temp) < (999.999), "<999.999", ">=999.999"))) +
+  geom_path(aes(water.density(Temp), Depth_m, group = as.factor(Time), col = (winter)), alpha = 0.5) +
+  geom_point(aes(water.density(Temp), Depth_m, group = as.factor(Time), col = (winter)), alpha = 0.5) +
+  scale_y_reverse() +
+  # theme(legend.position = "none") +
+  # scale_color_gradientn(colors = rev(met.brewer("Hokusai1", n=100))) +
+  geom_vline(xintercept = 1000.00, linetype = 'dashed', colour = 'black')+
+  # xlab(expression(paste("Water density(kg ",m^-3,")"))) + ylab("Depth (m)") +
+  labs(x = expression(paste("Water density(kg ",m^-3,")")), y = "Depth (m)") +
+  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  xlim(999.990, 1000.0001)+
+  scale_shape_discrete(name = "")+
+  facet_wrap(~ factor(month, levels = c(12,1,2,3,4)), ncol =  3, scales = 'free', strip.position = "bottom") +
+  theme_bw()+
+  theme(strip.background = element_blank(), 
+        strip.placement = "outside");p1
+
+grid.draw(shift_legend(p1))
+ggsave(filename = 'figs/density_profile.png', width = 25, height = 25, units = 'cm')
 
 
 
