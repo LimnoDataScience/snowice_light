@@ -215,13 +215,7 @@ p1 <- ggplot(df_plot %>%
         strip.placement = "outside");p1
 
 grid.draw(shift_legend(p1))
-ggsave(filename = 'figs/density_profile.png', width = 25, height = 25, units = 'cm')
-
-
-
-
-
-
+ggsave(filename = 'figs/density_profile.png', width = 15, height = 15, units = 'cm')
 
 
 
@@ -453,7 +447,6 @@ df_hour <- df %>%
          Time = (dateTime),
          Dateie = as.Date(Time),
          Date = as.POSIXct(paste0(Dateie,' ',hour,':00:00'))) %>%
-
   group_by(Date, Depth_m) %>%
   arrange(Depth_m) %>%
   summarise(Temp = mean(Temp_C)) %>%
@@ -790,35 +783,39 @@ ggplot(conv.layer %>% filter(!is.na(winter))) +
 
 winter.layer = conv.layer %>% filter(!is.na(winter)) %>%
   mutate(col =ifelse(winter == 'winter18-19', '#34cceb', ifelse(winter == 'winter19-20','#1b535e' ,'#dead1b'))) %>%
-  mutate(date = as.Date(format(Time, format ='%m-%d'), format ='%m-%d' )) %>%
-  mutate(day = day(Time),
-         hour = hour(Time),
-         week = week(Time),
-         datetime = ifelse(month > 6, lubridate::make_datetime(2020, month, day, hour, 0, 0), lubridate::make_datetime(2021, month, day, hour, 0, 0))) %>%
-  filter(!is.na(winter))
+  # mutate(date = as.Date(format(Time, format ='%m-%d'), format ='%m-%d' )) %>%
+  mutate(fakeyear = if_else(month(as.Date(Time)) >= 08, `year<-`(as.Date(Time), 2019), `year<-`(as.Date(Time), 2020))) 
+# 
+#   mutate(day = day(Time),
+#          hour = hour(Time),
+#          week = week(Time),
+#          datetime = ifelse(month > 6, lubridate::make_datetime(2020, month, day, hour, 0, 0), lubridate::make_datetime(2021, month, day, hour, 0, 0))) %>%
+#   filter(!is.na(winter))
 
 
 
 library(scales)
-plot_datetime = winter.layer$datetime
-# plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
-plot_breaks = seq(min(plot_datetime), max(plot_datetime), 1000000)
-plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
-match(plot_breaks, plot_datetime)
+# plot_datetime = winter.layer$datetime
+# # plot_label = (format(m_df_timeseries$Time, format ='%m-%d %H:00:00') )
+# plot_breaks = seq(min(plot_datetime), max(plot_datetime), 1000000)
+# plot_label = format(as.POSIXct((plot_breaks), origin='1970-01-01'),  format ='%m-%d %H:00:00') 
+# match(plot_breaks, plot_datetime)
 
 p1 <- ggplot(winter.layer) +
-  geom_line(aes(datetime, energy,  col = winter), linewidth = 1.0) +
+  geom_line(aes(fakeyear, energy,  col = winter), linewidth = 1.0) +
   # facet_wrap(~ winter , ncol= 1, scales = 'free_x') +
   # scale_color_gradientn(colours = rev(RColorBrewer::brewer.pal(11, 'RdYlBu'))) +
   scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
-  scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
-  ylim(5e7, 1.25e8)+
+  scale_x_date(date_breaks = 'month', date_minor_breaks = 'week',date_labels = '%b-%d') +
+  # scale_x_continuous(breaks = plot_breaks,labels= plot_label) +
+  ylim(5e7, 1.25e8) +
   labs(y = expression(paste("Internal energy (J ",m^-2,")")), x = "") +
-  geom_vline(xintercept= winter.layer$datetime[ which(abs(winter.layer$minT - 4) < 0.003)], col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)]) +
-  theme_bw()+theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); p1
+  geom_vline(xintercept= winter.layer$fakeyear[ which(abs(winter.layer$minT - 4) < 0.003)], col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)]) +
+  theme_bw() + 
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), axis.title.x = element_blank()); p1
 
-ggsave(filename = 'figs/energy_hourly.png', plot = p1, width = 30, height = 15, units = 'cm')
+ggsave(filename = 'figs/energy_hourly2.png', plot = p1, width = 15, height = 10, units = 'cm')
 
 winter.layer %>% filter(winter == 'winter18-19') %>%
   summarise(min = min(energy, na.rm =T))
