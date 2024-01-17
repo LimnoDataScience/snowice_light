@@ -33,17 +33,21 @@ df_day <- raw %>%
   arrange(Time, Depth_m) %>%
   group_by(Time, Depth_m) %>%
   summarise(Temp = mean(Temp_C)) |> 
-  mutate(winter = case_when(Time >= as.Date('2018-10-01') & Time <= as.Date('2019-05-01') ~ 'SSB_Snow_18-19',
-                            Time >= as.Date('2019-10-01') & Time <= as.Date('2020-05-01') ~ 'SSB_WhiteIce_19-20',
-                            Time >= as.Date('2020-10-01') & Time <= as.Date('2021-05-01') ~ 'SSB_BlackIce_20-21',
+  mutate(winter = case_when(Time >= as.Date('2018-11-01') & Time <= as.Date('2019-05-01') ~ 'SSB_Snow_18-19',
+                            Time >= as.Date('2019-11-01') & Time <= as.Date('2020-05-01') ~ 'SSB_WhiteIce_19-20',
+                            Time >= as.Date('2020-11-01') & Time <= as.Date('2021-05-01') ~ 'SSB_BlackIce_20-21',
                             TRUE ~ NA)) |> 
+  filter(!is.na(winter)) |> 
   # mutate(fakeyear = `year<-`(Time, 2020)) |> 
   mutate(fakeyear = if_else(month(Time) >= 08, `year<-`(Time, 2019), `year<-`(Time, 2020))) 
 
+
 combo = df_day |> bind_rows(ui.long) |> 
   mutate(winter = factor(winter, levels = c('SSB_Snow_18-19','SSB_WhiteIce_19-20',
-                                             'SSB_BlackIce_20-21','TroutBog_Snow_20-21')))
+                                             'SSB_BlackIce_20-21','TroutBog_Snow_20-21'))) |> 
+  mutate(Depth = Depth_m)
 
+# Ice dates dataframe for ice on and ice off
 icedates = data.frame(winter = c('SSB_Snow_18-19','SSB_WhiteIce_19-20',
                                  'SSB_BlackIce_20-21','TroutBog_Snow_20-21'),
   iceon = c(as.Date('2019-11-09'), as.Date('2019-11-06'), as.Date('2019-11-16'), as.Date('2019-11-16')),
@@ -53,18 +57,25 @@ icedates = data.frame(winter = c('SSB_Snow_18-19','SSB_WhiteIce_19-20',
 
 
 ggplot(combo |> filter(!is.na(winter))) +
-  geom_path(aes(x = fakeyear, y = Temp, group = Depth_m, color = Depth_m)) +
+  geom_path(aes(x = fakeyear, y = Temp, group = Depth, color = Depth)) +
   geom_vline(data = icedates, aes(xintercept = iceon), linetype = 2) +
   geom_vline(data = icedates, aes(xintercept = iceoff), linetype = 3) +
-  scale_color_met_c(name = 'Degas') +
+  scale_color_met_c(name = 'Demuth') +
   facet_wrap(~winter, ncol = 1) +
-  scale_x_date(limits = c(as.Date('2019-10-15'), as.Date('2020-05-01')),
-                          date_breaks = 'month', date_labels = '%b') +
+  scale_x_date(limits = c(as.Date('2019-10-25'), as.Date('2020-05-05')),
+                          date_breaks = 'month', date_labels = '%b', 
+               expand = c(0,0.1)) +
   ylim(0,7.5) +
   ylab('Temperature (°C)') +
   theme_bw(base_size = 9) +
-  theme(strip.background =element_rect(fill="#9dbbcf"))+
-  theme(strip.text = element_text(size = 11, face = 'bold'))
+  theme(strip.background =element_rect(fill="#9dbbcf"),
+        strip.text = element_text(size = 11, face = 'bold'),
+        axis.title.x = element_blank(), 
+        legend.position = 'bottom',
+        legend.key.height = unit(0.3,'cm'),
+        legend.key.width = unit(1.5,'cm'),
+        legend.margin=margin(c(1,1,1,1)))
 
-ggsave('figs/tempPlot_Lines.png', width = 6.5, height = 8, dpi = 500)
+ggsave('figs/tempPlot_Lines.pdf', width = 6.5, height = 7, dpi = 500)
+ggsave('figs/tempPlot_Lines.png', width = 6.5, height = 7, dpi = 500)
 
