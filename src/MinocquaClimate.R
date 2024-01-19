@@ -4,9 +4,9 @@ clim = read_csv('field//GHCND_USC00475516_Minocqua.csv') |>
   mutate(year = year(DATE), day = yday(DATE), month = month(DATE)) |> 
   mutate(year = if_else(month >= 7, year + 1, year)) |> 
   dplyr::mutate(dayJul = if_else(month <= 6, day + 182, day-183)) |> 
-  mutate(group = case_when(DATE >= as.Date('2018-11-01') & DATE <= as.Date('2019-04-30') ~ 'Winter 18-19',
-                           DATE >= as.Date('2019-11-01') & DATE <= as.Date('2020-04-30') ~ 'Winter 19-20',
-                           DATE >= as.Date('2020-11-01') & DATE <= as.Date('2021-04-30') ~ 'Winter 20-21'))
+  mutate(group = case_when(DATE >= as.Date('2018-11-01') & DATE <= as.Date('2019-04-30') ~ 'Year 1',
+                           DATE >= as.Date('2019-11-01') & DATE <= as.Date('2020-04-30') ~ 'Year 2',
+                           DATE >= as.Date('2020-11-01') & DATE <= as.Date('2021-04-30') ~ 'Year 3'))
 
 ## Total degdays ####
 clim |> 
