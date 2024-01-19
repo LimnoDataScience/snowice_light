@@ -56,8 +56,7 @@ conv.layer <- data.frame('Time' = NULL,
 conv.layer$Time = as.Date(conv.layer$Time)
 
 bathymetry = read.csv('input/SSB_hypsometry.csv')
-# bathymetry$Area_m2[which(bathymetry$Depth == 8)] = sum(bathymetry$Area_m2[which(bathymetry$Depth == 8):nrow(bathymetry)])
-hypsography <- bathymetry#[-c(10,11),]
+hypsography <- bathymetry
 
 ix = 1
 for (t in unique(df_hour$Date)){
