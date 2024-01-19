@@ -31,7 +31,16 @@ df_hour <- df %>%
   select(Date, Depth_m, Temp)
 
 ## WHAT?!
-length(df_hour$Date) == 19930
+test <- df %>%
+  mutate(hour = str_pad(hour(dateTime),2, pad = '0'),
+         Time = (dateTime),
+         Dateie = as.Date(Time),
+         Date = as.character(paste0(Dateie,' ',hour,':00:00'),
+                           format = '%Y-%m-%d %H:%M:%S'))
+
+length(unique(test$Date)) == 19930
+length(unique(df_hour$Date)) == 19930
+##
 
 dz = 0.1
 depths = seq(0.15, max(df_hour$Depth_m), dz)
