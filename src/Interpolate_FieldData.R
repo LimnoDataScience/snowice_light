@@ -55,6 +55,10 @@ conv.layer <- data.frame('Time' = NULL,
                          'minT' = NULL)
 conv.layer$Time = as.Date(conv.layer$Time)
 
+bathymetry = read.csv('input/SSB_hypsometry.csv')
+# bathymetry$Area_m2[which(bathymetry$Depth == 8)] = sum(bathymetry$Area_m2[which(bathymetry$Depth == 8):nrow(bathymetry)])
+hypsography <- bathymetry#[-c(10,11),]
+
 ix = 1
 for (t in unique(df_hour$Date)){
   
@@ -99,6 +103,13 @@ for (t in unique(df_hour$Date)){
   
   bathymetry = approx.bathy(Zmax = 8, Zmean = 3.6, lkeArea = 4400, method = 
                               'voldev', zinterval = dz)
+  
+
+  interp_bathymetry = approx(hypsography$Depth, hypsography$Area_m2,  
+                             seq(0,max(hypsography$Depth), dz) , rule = 2)
+  bathymetry = data.frame('Area.at.z' = interp_bathymetry$y, 
+                          'depths'=interp_bathymetry$x)
+
   
   ###  ------------------------------------------------------------------
   
