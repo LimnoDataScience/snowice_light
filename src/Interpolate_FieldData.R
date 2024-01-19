@@ -113,9 +113,13 @@ for (t in unique(df_hour$Date)){
 }
 
 
-write.csv(x = df_hour, file = 'output/hourly_observed_wtemp.csv', quote = F,
-          row.names = F)
-write.csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv', quote = F, 
-          row.names = F)
-write.csv(x = conv.layer, file = 'output/interpolated_hourly_convective.csv', 
-          quote = F, row.names = F)
+# write.csv(x = df_hour, file = 'output/hourly_observed_wtemp.csv', quote = F,
+#           row.names = F)
+# write.csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv', quote = F, 
+#           row.names = F)
+# write.csv(x = conv.layer, file = 'output/interpolated_hourly_convective.csv', 
+#           quote = F, row.names = F)
+
+write_csv(x = df_hour, file = 'output/hourly_observed_wtemp.csv')
+write_csv(x = df_temp, file = 'output/interpolated_hourly_wtemp.csv')
+write_csv(x = conv.layer, file = 'output/interpolated_hourly_convective.csv')

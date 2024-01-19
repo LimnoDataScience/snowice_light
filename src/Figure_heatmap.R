@@ -1,7 +1,11 @@
 library(tidyverse)
+library(directlabels)
+library(patchwork)
 
-df_hour <- read.csv("output/hourly_observed_wtemp.csv")
-df_temp = read.csv("output/interpolated_hourly_wtemp.csv") 
+df_hour <- read_csv("output/hourly_observed_wtemp.csv")
+df_temp = read_csv("output/interpolated_hourly_wtemp.csv") 
+# 
+timestamps = as.POSIXct(df_hour$Date, format = '%Y-%m-%d %H:%M:%S', tz = 'UTC')
 df_temp$Time <- unique(df_hour$Date)
 m.df <- reshape2::melt(df_temp, "Time")
 
@@ -84,5 +88,5 @@ g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes(x=(Time),y= ((variabl
   scale_y_reverse(limits = c(7.45,0.7)) + theme_bw() +theme(legend.position = "bottom"); g3
 
 p1=g1 / g2 / g3 +plot_layout(guides = "collect") & theme(legend.position = 'bottom')& plot_annotation(tag_levels = 'A');p1
-ggsave(filename = 'figs/wtempmap.png', plot = p1, width = 40, height = 30, units = 'cm')
+ggsave(filename = 'figs/wtempmap.png', plot = p1, width = 6, height = 9, units = 'in')
 #####
