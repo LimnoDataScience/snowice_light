@@ -98,7 +98,7 @@ p1 <- ggplot(winter.layer) +
   scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   scale_x_date(date_breaks = 'month', date_minor_breaks = 'week',
                date_labels = '%b') +
-  ylim(5e7, 1.25e8) +
+  ylim(7e7, 1.25e8) +
   labs(y = expression(paste("Internal energy (J ",m^-2,")")), x = "") +
   geom_vline(xintercept = winter.layer$fakeyear[ which(abs(winter.layer$minT - 4) < 0.003)], 
              col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)]) +

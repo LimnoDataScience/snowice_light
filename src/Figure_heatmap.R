@@ -1,6 +1,7 @@
 library(tidyverse)
 library(directlabels)
 library(patchwork)
+library(scales)
 
 df_hour <- read_csv("output/hourly_observed_wtemp.csv")
 df_temp = read_csv("output/interpolated_hourly_wtemp.csv") 
@@ -41,52 +42,39 @@ brks = c(4,(3.5),(3.0), (2.5),0.5)
 
 m.df$variable = as.numeric(gsub("X",'',m.df$variable))
 
-g1 <- ggplot(m.df %>% filter(winter == 'winter18-19'), aes((Time), ((variable)), z = (as.numeric(value)))) +
-  geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
-  geom_contour(colour = 'black', breaks = brks) +
-  scale_fill_gradientn(limits = c(0,8),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
-  # metR::geom_text_contour(aes(z = value)) +
-  geom_dl(aes(label=..level..), method="bottom.pieces",
-          stat="contour",breaks = brks) +
-  theme_minimal()  +xlab('Time') +
-  ylab('Depth [m]') +
-  labs(fill = 'Water temperature (\u00B0C)')+
-  ggtitle('Winter 2018-2019')+
-  # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
-  # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse(limits = c(7.45,0.7)) + theme_bw()+theme(legend.position = "bottom"); g1
+plotHeatMap <- function(usewinter, usetitle) {
+  ggplot(m.df %>% filter(winter == usewinter), aes(x=(Time),y= ((variable)), z = (as.numeric(value)))) +
+    geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
+    geom_contour(colour = 'black', breaks = c(4,(3.5),(3.0), (2.5),0.5)) +
+    scale_fill_gradientn(limits = c(0,8),
+                         colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
+    # geom_dl(aes(label=..level..), method="bottom.pieces",
+    #         stat="contour", breaks = brks) +
+    ylab('Depth [m]') +
+    labs(fill = 'Water temperature (\u00B0C)')+
+    labs(subtitle = usetitle) +
+    # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
+    # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
+    scale_y_reverse(limits = c(7.45,0.7), expand = c(0,0)) + 
+    scale_x_datetime(breaks = 'month', date_labels = '%b', expand = c(0,0)) +
+    theme_bw(base_size = 9) +
+    theme(legend.position = "bottom",
+          axis.title.x = element_blank()) 
+}
 
-g2 <- ggplot(m.df %>% filter(winter == 'winter19-20'), aes((Time), ((variable)), z = (as.numeric(value)))) +
-  geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
-  geom_contour(colour = 'black', breaks = c(4,(3.5),(3.0), (2.5),0.5)) +
-  scale_fill_gradientn(limits = c(0,8),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
-  geom_dl(aes(label=..level..), method="bottom.pieces",
-          stat="contour",breaks = brks) +
-  theme_minimal()  +xlab('Time') +
-  ylab('Depth [m]') +
-  labs(fill = 'Water temperature (\u00B0C)')+
-  ggtitle('Winter 2019-2020')+
-  # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
-  # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse(limits = c(7.45,0.7)) + theme_bw()+theme(legend.position = "bottom"); g2
+g1 = plotHeatMap('winter18-19', 'Winter 2018-19'); g1
+g2 = plotHeatMap('winter19-20', 'Winter 2019-20'); g2
+g3 = plotHeatMap('winter20-21', 'Winter 2020-21'); g3
 
-g3 <- ggplot(m.df %>% filter(winter == 'winter20-21'), aes(x=(Time),y= ((variable)), z = (as.numeric(value)))) +
-  geom_raster(aes(fill = (as.numeric(value))), interpolate = TRUE) +
-  geom_contour(colour = 'black', breaks = c(4,(3.5),(3.0), (2.5),0.5)) +
-  scale_fill_gradientn(limits = c(0,8),
-                       colours = rev(RColorBrewer::brewer.pal(11, 'RdBu')))+
-  geom_dl(aes(label=..level..), method="bottom.pieces",
-          stat="contour",breaks = brks) +
-  theme_minimal()  +xlab('Time') +
-  ylab('Depth [m]') +
-  labs(fill = 'Water temperature (\u00B0C)')+
-  ggtitle('Winter 2020-2021')+
-  # geom_line(data = avgtemp, aes(time, thermoclineDep, col = 'thermocline depth'), linetype = 'dashed', col = 'brown') +
-  # geom_line(data = df.ice, aes(time, ice_h * (-1), col = 'ice thickness'), linetype = 'solid', col = 'darkblue') +
-  scale_y_reverse(limits = c(7.45,0.7)) + theme_bw() +theme(legend.position = "bottom"); g3
+p1 = g1 / g2 / g3 +
+  plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = 'A', tag_suffix = ')') &
+  theme(plot.tag = element_text(size = 8),
+        legend.key.height = unit(0.3, 'cm'), 
+        legend.key.width = unit(1, 'cm'),
+        legend.position = 'bottom', 
+        legend.margin=margin(c(1,1,1,1)))
 
-p1=g1 / g2 / g3 +plot_layout(guides = "collect") & theme(legend.position = 'bottom')& plot_annotation(tag_levels = 'A');p1
 ggsave(filename = 'figs/wtempmap.png', plot = p1, width = 6, height = 9, units = 'in')
+
 #####
