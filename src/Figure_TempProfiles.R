@@ -1,6 +1,8 @@
 library(NTLlakeloads)
 library(tidyverse)
+library(lubridate)
 
+# Read in LTER data
 temp = loadLTERtemp() |> 
   mutate(year = year(sampledate), day = yday(sampledate), month = month(sampledate)) |> 
   mutate(year = if_else(month >= 7, year + 1, year)) |> 
@@ -16,14 +18,12 @@ df = temp |>
   arrange(lakeid, sampledate, depth)
 
 ### Bring in SSB data ###
-tb.dates = df |> filter(lakeid == 'TB') |> distinct(sampledate)
-
-ssb.profiles = tb.dates |> left_join(m.df, by = join_by(sampledate == Time)) |> 
-  mutate(lakeid = 'SSB') |> 
+ssb.profiles = read_csv('field/tempdossb_tb.csv') |> filter(lake == 'SSB') |> filter(!is.na(waterTemp_C)) |> 
+  select(lakeid = lake, sampledate, depth = water_depth_m, wtemp = waterTemp_C) |> 
   mutate(group = case_when(sampledate >= as.Date('2018-12-01') & sampledate <= as.Date('2019-04-01') ~ 'Winter 18-19',
                            sampledate >= as.Date('2019-12-01') & sampledate <= as.Date('2020-04-01') ~ 'Winter 19-20',
                            sampledate >= as.Date('2020-12-01') & sampledate <= as.Date('2021-04-01') ~ 'Winter 20-21')) |> 
-  select(lakeid, sampledate, depth = Depth, wtemp = Temp, group)
+  filter(!is.na(group))
 
 ### Join data
 lakenames = data.frame(lakeid = c('AL','CB','TB','SSB'), 
