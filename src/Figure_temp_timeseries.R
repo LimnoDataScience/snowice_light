@@ -66,20 +66,7 @@ ggsave(filename = 'figs/wtemptimeseries2.png', width = 15, height = 15, units = 
 ########################################
 ###########  Energy Plot   #############
 ########################################
-conv.layer = read.csv("output/interpolated_hourly_convective.csv") %>% 
-  mutate(Time = as.POSIXct(Time))
-
-all.dates <- seq(as.POSIXct('2018-11-01 00:00:00'), as.POSIXct('2021-05-31 00:00:00'), by = 3600)
-idx.dates <- which(all.dates %in% conv.layer$Time)
-
-add.dates <- data.frame('Time' = all.dates[-idx.dates],
-                        'Buoydep' = NA,
-                        'Convdep' = NA,
-                        'energy' = NA,
-                        'minT' = NA)
-
-conv.layer <- rbind(conv.layer, add.dates) %>% arrange(Time)
-
+conv.layer = read_csv("output/interpolated_hourly_convective.csv") 
 
 conv.layer = conv.layer %>% 
   mutate(doy = yday(Time), year = year(Time), month = month(Time)) |> 
@@ -89,7 +76,7 @@ conv.layer = conv.layer %>%
                             TRUE ~ NA))
 
 winter.layer = conv.layer %>% filter(!is.na(winter)) %>%
-  mutate(col =ifelse(winter == 'winter18-19', '#34cceb', ifelse(winter == 'winter19-20','#1b535e' ,'#dead1b'))) %>%
+  mutate(col = ifelse(winter == 'winter18-19', '#34cceb', ifelse(winter == 'winter19-20','#1b535e' ,'#dead1b'))) %>%
   mutate(fakeyear = if_else(month(as.Date(Time)) >= 08, `year<-`(as.Date(Time), 2019), `year<-`(as.Date(Time), 2020))) 
 
 p1 <- ggplot(winter.layer) +
