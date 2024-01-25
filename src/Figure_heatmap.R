@@ -1,5 +1,5 @@
 library(tidyverse)
-library(directlabels)
+# library(directlabels)
 library(patchwork)
 library(scales)
 
@@ -75,6 +75,7 @@ p1 = g1 / g2 / g3 +
         legend.position = 'bottom', 
         legend.margin=margin(c(1,1,1,1)))
 
-ggsave(filename = 'figs/wtempmap.png', plot = p1, width = 6, height = 9, units = 'in')
+ggsave(filename = 'figs/wtempmap.png', plot = p1, width = 6, height = 7, units = 'in')
+ggsave(filename = 'figs/wtempmap.pdf', plot = p1, width = 6, height = 7, units = 'in')
 
 #####
