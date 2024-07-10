@@ -31,7 +31,7 @@ df1 <- raw %>%
 
 # (1) method 1 is profile method using eddy approach
 # assuming laminar under-ice conditions, flux = -k * (T_0 - T_s) / (z_s)
-k_molecular = 0.56 # molecular diffusitivity, laminar flow W / m C
+k_molecular = 0.56 # molecular diffusivity, laminar flow W / m C
 k_petrov = 20 # Petrov 2006, Shirasawa 2006, https://library.arcticportal.org/2769/1/A2104010.pdf 
 # (2) method 2 is bulk formula for heat flux, https://eprints.lib.hokudai.ac.jp/dspace/bitstream/2115/38935/1/18IAHR2006_s84.pdf 
 # flux = rho c_w C_H (T - T0) Uw
