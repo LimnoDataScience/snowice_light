@@ -1,8 +1,43 @@
 library(tidyverse)
+library(patchwork)
 
 # Read in data file 
 ice = read_csv('field/ice_snow_data.csv')
 head(ice)
+
+# Snowfall normal NC wisconsin https://climatology.nelson.wisc.edu/wisconsin-climate-divisions/divisional-12-month-snowfall/
+# 1.5 + 9.4 + 17.3 + 17.4 + 14.5 + 11.1 + 6.7 + 0.4 #normal
+# 2.1 + 2.7 + 3.6 + 10.1 + 5 + 12.7 + 5.3 # 2023-2024 winter 
+# difference 36.8 inches ~ 90 cm
+
+# Munge climate data
+climate = read_csv('field/GHCND_USC00475516_Minocqua.csv') |> 
+  filter(DATE >= as.Date('2018-12-01') & DATE <= as.Date('2021-04-01')) |> 
+  mutate(winter = case_when(DATE >= as.Date('2018-11-01') & DATE < as.Date('2019-04-01') ~ '2018-19',
+                            DATE >= as.Date('2019-11-01') & DATE < as.Date('2020-04-01') ~ '2019-20',
+                            DATE >= as.Date('2020-11-01') & DATE < as.Date('2021-04-01') ~ '2020-21',
+                            TRUE ~ NA)) |> 
+  mutate(col = ifelse(winter == '2018-19', '#34cceb', ifelse(winter == '2019-20','#1b535e' ,'#dead1b'))) %>%
+  mutate(fakeyear = if_else(month(as.Date(DATE)) >= 08, `year<-`(as.Date(DATE), 2019), `year<-`(as.Date(DATE), 2020))) |> 
+  filter(!is.na(winter)) |> 
+  mutate(TMEAN = (TMAX + TMIN)/2)
+
+p.clim = ggplot(climate) +
+  geom_hline(aes(yintercept = 0), linetype =2) +
+  geom_ribbon(aes(fakeyear, ymin = TMIN, ymax = TMAX,  fill = winter), alpha = 0.3) +
+  geom_line(aes(fakeyear, TMEAN, col = winter)) +
+  scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
+  scale_x_date(date_breaks = 'month', date_minor_breaks = 'week',
+               date_labels = '%b') +
+  labs(y = 'Mean air temp (°C)', x = "") +
+  theme_bw(base_size = 9) + 
+  theme(legend.position = "right", 
+        legend.key.width = unit(0.2,'cm'),
+        legend.title = element_blank(),
+        # axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), 
+        axis.title.x = element_blank())
+
 
 # Compare ice thicknesses in 2021
 ice |> filter(Lake %in% c('SSB', 'TB'), year(sample_date) == 2019)
@@ -25,10 +60,10 @@ icesnow = ice |> select(-secchi, -totice) |>
   mutate(lakename = factor(lakename, levels = c('Allequash Lake', 'Crystal Bog','Trout Bog', 'South Sparkling Bog'))) 
   
 ### Join data
-View(icesnow)
+# View(icesnow)
   
 #### Ice Thickness ####
-ggplot(data = icesnow, aes(x = factor(sample_date), y = thickness, fill = icetype)) +
+p.ice = ggplot(data = icesnow, aes(x = factor(sample_date), y = thickness, fill = icetype)) +
   geom_hline(aes(yintercept = -50), size = 0.3, linetype = 2) +
   geom_hline(aes(yintercept = 0), size = 0.3) +
   geom_col(width=0.5, color = 'black', linewidth = 0.2) + 
@@ -45,12 +80,22 @@ ggplot(data = icesnow, aes(x = factor(sample_date), y = thickness, fill = icetyp
   # annotate("text", x = 10, y = -23, label = "Manipulation Year 2", size = 9/.pt) +
   theme_bw(base_size = 9) +
   theme(axis.text.x=element_text(angle = 45, vjust = 1, hjust = 1, size = 6),
-        legend.position = 'bottom',
+        legend.position = 'right',
         legend.key.size = unit(0.3, 'cm'),
         # panel.grid.minor = element_line(size = rel(0.2)),
         panel.grid = element_line(linewidth = rel(0.3)),
         axis.title.x = element_blank(),
         legend.margin = margin(c(0,0,0,0), unit = "cm"))
 
-ggsave('figs/icePlots.png', width = 3.5, height = 4, dpi = 500)
+# ggsave('figs/icePlots.png', width = 3.5, height = 4, dpi = 500)
+
+p.clim / p.ice + 
+  plot_annotation(tag_levels = 'A', tag_suffix = ')') +
+  plot_layout(heights = c(1,2)) &
+  theme(plot.tag = element_text(size = 8),
+        legend.text = element_text(size = 6),
+        legend.title=element_blank(),
+        legend.margin=margin(c(1,1,1,1)))
+
+ggsave('figs/Figure2_icePlots.png', width = 3.5, height = 5, dpi = 500)
 

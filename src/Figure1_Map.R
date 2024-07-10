@@ -5,8 +5,8 @@ library(patchwork)
 library(png)
 
 # Read in google earth image of the bogs
-img1 <- readPNG("src/Map/Bogs.png", native = T)
-img2 <- readPNG("src/Map/Bogs2.png", native = T)
+# img1 <- readPNG("src/Map/Bogs.png", native = T)
+img2 <- readPNG("src/Map/Bogs3.png", native = T)
 
 # Create location data.frame
 ssb <- data.frame(site = c("South Sparkling Bog", "Trout Bog", "Allequash Lake", "Crystal Bog"),
@@ -27,7 +27,7 @@ w1 = ggplot(wi.simple) +
   # geom_sf(data = st_as_sfc(st_bbox(ssb)), fill = 'red4', color = 'red4', size = 5) + # Inset box
   geom_sf(data = ssb[1,], fill = 'red3', color = 'black', size = 4, shape = 22, stroke = 0.5) + # Inset box
   coord_sf(ylim = c(42.3,47.5), xlim = c(-93, -86), expand = FALSE) + # limit axes
-  theme_bw(base_size = 9) +
+  theme_bw(base_size = 8) +
   theme(#plot.background = element_rect(fill = "transparent", colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
@@ -50,25 +50,25 @@ w2 = ggplot(data.frame(x = 0:1, y = 0:1), aes(x,y)) +
   geom_blank() +
   annotation_custom(grid::rasterGrob(img2)) +
   annotate('text', label = 'South Sparkling Bog', x = 0.24, y = 0.16, color = 'white', size = 3) +
-  annotate("segment", x = 0.06, y = 0.21, xend = 0.03, yend = 0.11,
+  annotate("segment", x = 0.06, y = 0.16, xend = 0, yend = 0.16,
            arrow = arrow(angle = 30, length = unit(.15,"cm")), color = 'white', linewidth = 0.5) +
   annotate('text', label = 'Trout Bog', x = 0.05, y = 0.9, color = 'white', size = 3) +
-  annotate("segment", x = 0.15, y = 0.90, xend = 0.2, yend = 0.86,
+  annotate("segment", x = 0.14, y = 0.88, xend = 0.16, yend = 0.91,
            arrow = arrow(angle = 30, length = unit(.15,"cm")), color = 'white', linewidth = 0.5) +
-  annotate('text', label = 'Allequash Lake', x = 0.8, y = 0.85, color = 'white', size = 3) +
-  annotate("segment", x = 0.74, y = 0.8, xend = 0.84, yend = 0.8,
+  annotate('text', label = 'Allequash Lake', x = 0.75, y = 0.95, color = 'white', size = 3) +
+  annotate("segment", x = 0.7, y = 0.9, xend = 0.8, yend = 0.9,
            arrow = arrow(angle = 30, length = unit(.15,"cm")), color = 'white', linewidth = 0.5) +
-  annotate('text', label = 'Crystal Bog', x = 0.95, y = 0.34, color = 'white', size = 3) +
-  annotate("segment", x = 0.9, y = 0.3, xend = 1, yend = 0.2,
+  annotate('text', label = 'Crystal Bog', x = 0.90, y = 0.34, color = 'white', size = 3) +
+  annotate("segment", x = 0.9, y = 0.3, xend = 0.97, yend = 0.25,
            arrow = arrow(angle = 30, length = unit(.15,"cm")), color = 'white', linewidth = 0.5) +
-  theme_void()
+  theme_void(); w2
 
 
 
 # # Patchwork combine map 
 w1 + w2 + 
-plot_layout(widths = c(1,1.6)) +
-plot_annotation(tag_levels = 'a', tag_suffix = ')') & 
+plot_layout(widths = c(1,1.58)) +
+plot_annotation(tag_levels = 'A', tag_suffix = ')') & 
 theme(plot.tag = element_text(size = 8), 
       plot.margin = unit(c(0, 0.1, 0, 0), "cm")) 
 
