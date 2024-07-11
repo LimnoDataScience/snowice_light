@@ -37,7 +37,7 @@ ggplot(clim) +
         legend.position = c(0.1,0.15),
         legend.title = element_blank()) 
 
-ggsave('../Climate/Minocqua_AirTemp.png', width = 5, height = 2.5, dpi = 500)  
+# ggsave('../Climate/Minocqua_AirTemp.png', width = 5, height = 2.5, dpi = 500)  
 
 #### Snow ####
 ggplot(clim) +
@@ -60,7 +60,7 @@ ggplot(clim) +
         legend.position = c(0.1,0.85),
         legend.title = element_blank()) 
 
-ggsave('../Climate/Minocqua_Snow.png', width = 5, height = 2.5, dpi = 500)  
+# ggsave('../Climate/Minocqua_Snow.png', width = 5, height = 2.5, dpi = 500)  
 
 #### Precip ####
 ggplot(clim) +
@@ -83,4 +83,4 @@ ggplot(clim) +
         legend.position = c(0.1,0.85),
         legend.title = element_blank()) 
 
-ggsave('../Climate/Minocqua_PRCP.png', width = 5, height = 2.5, dpi = 500)  
+# ggsave('../Climate/Minocqua_PRCP.png', width = 5, height = 2.5, dpi = 500)  
