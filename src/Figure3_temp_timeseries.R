@@ -30,7 +30,7 @@ df1 <- raw %>%
 
 df2 = df1 |> 
   group_by(winter, Depth) |> 
-  mutate(tempMA = rollapply(Temp_C, width = 10, mean, align='right', fill=NA))
+  mutate(tempMA = rollapply(Temp_C, width = 6*24, mean, align='right', fill=NA))
 
 usedepths = sort(unique(df1$Depth))[-2]
 
@@ -77,18 +77,30 @@ conv.layer = conv.layer %>%
 
 winter.layer = conv.layer %>% filter(!is.na(winter)) %>%
   mutate(col = ifelse(winter == 'winter18-19', '#34cceb', ifelse(winter == 'winter19-20','#1b535e' ,'#dead1b'))) %>%
-  mutate(fakeyear = if_else(month(as.Date(Time)) >= 08, `year<-`(as.Date(Time), 2019), `year<-`(as.Date(Time), 2020))) 
+  mutate(fakeyear = if_else(month(as.Date(Time)) >= 08, `year<-`(as.POSIXct(Time), 2019), `year<-`(as.POSIXct(Time), 2020))) 
+
+winter.layer$fakeyear[ which(abs(winter.layer$minT - 4) < 0.003)]
+
+vlines = winter.layer |> filter(abs(minT - 4) < 0.003) |> 
+  group_by(date(Time)) |> 
+  summarise_all(first)
 
 p1 <- ggplot(winter.layer) +
   geom_line(aes(fakeyear, energy,  col = winter)) +
   scale_color_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
   scale_fill_manual(values = c('#34cceb','#1b535e','#dead1b'), name = 'Winter') +
-  scale_x_date(date_breaks = 'month', date_minor_breaks = 'week',
+  scale_x_datetime(date_breaks = 'month', date_minor_breaks = 'week',
                date_labels = '%b') +
   ylim(7e7, 1.25e8) +
   labs(y = expression(paste("Internal energy (J ",m^-2,")")), x = "") +
-  geom_vline(xintercept = winter.layer$fakeyear[ which(abs(winter.layer$minT - 4) < 0.003)], 
-             col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)]) +
+  geom_segment(data = vlines, aes(x = fakeyear, xend = fakeyear, y = -Inf, yend = 7.5e7),
+               color = vlines$col,
+               linewidth = 0.5, linetype = 1,
+               arrow = arrow(length = unit(0.2, "cm"))) +
+  # geom_segment(aes(x = fakeyear[ which(abs(winter.layer$minT - 4) < 0.003)],
+  #                  xend = fakeyear[ which(abs(minT - 4) < 0.003)],
+  #                  y = rep(-Inf,20), yend = rep(8e7, 20)),
+  #            col = winter.layer$col[ which(abs(winter.layer$minT - 4) < 0.003)], linetype = 2) +
   theme_bw(base_size = 9) + 
   theme(legend.position = "bottom", 
         legend.title = element_blank(),

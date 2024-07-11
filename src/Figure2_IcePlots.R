@@ -52,10 +52,11 @@ lakenames = data.frame(Lake = c('AL','CB','TB','SSB'),
 icesnow = ice |> select(-secchi, -totice) |> 
   rename(snow = avsnow) |> 
   mutate(whiteice = -whiteice, blackice = -blackice) |> 
-  pivot_longer(cols = snow:blackice, names_to = 'icetype', values_to = 'thickness') |> 
-  bind_rows(data.frame(Lake = 'SSB',sample_date = as.Date('2019-03-25'),icetype = 'whiteice',thickness = NA)) |> 
-  bind_rows(data.frame(Lake = 'TB',sample_date = as.Date('2020-01-07'),icetype = 'whiteice',thickness = NA)) |> 
-  mutate(icetype = factor(icetype, levels = c('snow','blackice','whiteice'))) |> 
+  rename(`white ice` = whiteice, `black ice` = blackice) |> 
+  pivot_longer(cols = snow:`black ice`, names_to = 'icetype', values_to = 'thickness') |> 
+  bind_rows(data.frame(Lake = 'SSB',sample_date = as.Date('2019-03-25'),icetype = 'white ice',thickness = NA)) |> 
+  bind_rows(data.frame(Lake = 'TB',sample_date = as.Date('2020-01-07'),icetype = 'white ice',thickness = NA)) |> 
+  mutate(icetype = factor(icetype, levels = c('snow','black ice','white ice'))) |> 
   left_join(lakenames) |> 
   mutate(lakename = factor(lakename, levels = c('Allequash Lake', 'Crystal Bog','Trout Bog', 'South Sparkling Bog'))) 
   
@@ -64,8 +65,8 @@ icesnow = ice |> select(-secchi, -totice) |>
   
 #### Ice Thickness ####
 p.ice = ggplot(data = icesnow, aes(x = factor(sample_date), y = thickness, fill = icetype)) +
-  geom_hline(aes(yintercept = -50), size = 0.3, linetype = 2) +
-  geom_hline(aes(yintercept = 0), size = 0.3) +
+  geom_hline(aes(yintercept = -50), linewidth = 0.3, linetype = 2) +
+  geom_hline(aes(yintercept = 0), linewidth = 0.3) +
   geom_col(width=0.5, color = 'black', linewidth = 0.2) + 
   scale_y_continuous(labels = abs) +
   scale_fill_manual(values = rev(c('#E0E0E0','#404040','lightblue3')), name = '') +
