@@ -54,7 +54,7 @@ usedepths = sort(unique(df1$Depth))[-2]
 
 tsplots = list()
 usedepth = usedepths[1]
-tsplots = ggplot(df2 %>% filter(Depth == usedepth), 
+ggplot(df2 %>% filter(Depth == usedepth), 
                         aes(fakeyear, molecularMA, color = 'molecular')) +
     geom_line() +
     geom_line(aes(fakeyear, turbulentMA, color = 'empirical')) +
@@ -65,7 +65,7 @@ tsplots = ggplot(df2 %>% filter(Depth == usedepth),
     labs(subtitle = paste0("Surface heat flux")) +
     theme_bw(base_size = 9) +
     theme(axis.title.x = element_blank())+
-  facet_wrap(~ winter)
+    facet_wrap(~ winter)
 # 
 # # wrap plots
 # wrap_plots(tsplots, ncol = 1) + 
