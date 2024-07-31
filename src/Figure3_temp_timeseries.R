@@ -107,6 +107,9 @@ p1 <- ggplot(winter.layer) +
         # axis.text.x = element_text(angle = 15, vjust = 0.5, hjust = 1), 
         axis.title.x = element_blank()); p1
 
+# Find minimum internal energy
+winter.layer %>% group_by(winter) %>% summarise(min(energy))
+
 ###################### Combine plots #############################
 layout <- "
 AB
