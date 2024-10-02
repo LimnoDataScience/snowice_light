@@ -4,3 +4,5 @@ src/.Rhistory
 .RData
 .Ruserdata
 .DS_Store
+
+src/Deprecated

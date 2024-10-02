@@ -43,7 +43,7 @@ conv.layer <- data.frame('Time' = NULL,
                          'minT' = NULL)
 conv.layer$Time = as.Date(conv.layer$Time)
 
-bathymetry = read.csv('input/SSB_hypsometry.csv')
+bathymetry = read.csv('field/SSB_hypsometry.csv')
 hypsography <- bathymetry
 
 ix = 1
