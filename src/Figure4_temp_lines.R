@@ -60,7 +60,7 @@ ggplot(combo |> filter(!is.na(winter))) +
   geom_path(aes(x = fakeyear, y = Temp, group = Depth, color = Depth)) +
   geom_vline(data = icedates, aes(xintercept = iceon), linetype = 2) +
   geom_vline(data = icedates, aes(xintercept = iceoff), linetype = 3) +
-  scale_color_met_c(name = 'Demuth') +
+  scale_color_met_c(palette_name = 'Demuth') +
   facet_wrap(~winter, ncol = 1) +
   scale_x_date(limits = c(as.Date('2019-10-25'), as.Date('2020-05-05')),
                           date_breaks = 'month', date_labels = '%b', 
