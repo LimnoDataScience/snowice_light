@@ -1,3 +1,0 @@
-output/NTL_observed_temp.csv
-input/observed_df_lter_hourly_wide.csv
-input/observed_df_lter_hourly_wide_clean.csv
